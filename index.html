@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DMX New Tab</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="main-window" id="main-window">
+            <div class="tab-content active" id="tab1">
+                <!-- <h2>Quick Launch</h2> -->
+                <div class="shortcuts-container">
+                    <div class="shortcuts-left">
+                        <!-- <h3 class="section-title">My Shortcuts</h3> -->
+                        <div id="shortcuts-grid"></div>
+                    </div>
+                    <div class="shortcuts-right">
+                        <!-- <h3 class="section-title">Categories</h3> -->
+                        <div id="categories-container"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="tab2">
+                <div class="weather-news-container">
+                    <div class="weather-section">
+                        <h3>Weather</h3>
+                        <div id="weather-widget">
+                            <div id="weather-loading" class="loading-indicator">
+                                <i class="fas fa-spinner fa-spin"></i> Loading weather...
+                            </div>
+                            <div id="weather-error" class="error-message" style="display: none;">
+                                No API key configured. Please add your API key in settings.
+                            </div>
+                            <div id="weather-content" style="display: none;">
+                                <div class="weather-header">
+                                    <div class="weather-icon"></div>
+                                    <div class="weather-temp">--°</div>
+                                </div>
+                                <div class="weather-details">
+                                    <div class="weather-description">--</div>
+                                    <div class="weather-location">--</div>
+                                    <div class="weather-feels-like">Feels like: --°</div>
+                                </div>
+                                <div class="weather-metrics">
+                                    <div class="weather-metric">
+                                        <i class="fas fa-wwind"></i>
+                                        <span id="weather-wind">-- mph</span>
+                                    </div>
+                                    <div class="weather-metric">
+                                        <i class="fas fa-tint"></i>
+                                        <span id="weather-humidity">--%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="news-section">
+                        <h3>Feeds</h3>
+                        <div id="rss-container">
+                            <div id="rss-loading" class="loading-indicator">
+                                <i class="fas fa-spinner fa-spin"></i> Loading feeds...
+                            </div>
+                            <div id="rss-error" class="error-message" style="display: none;">
+                                No feeds configured. Click the settings button to add feeds.
+                            </div>
+                            <div id="rss-content" class="news-articles-container">
+                                <!-- Feed articles will be inserted here by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="tab3">
+               <!--  <h2>Notes & Todo</h2> -->
+                <div class="tab3-container">
+                    <div class="todo-section">
+                        <h3>Todo List</h3>
+                        <div class="todo-input-container">
+                            <input type="text" id="todo-input" placeholder="Add a new task...">
+                            <button id="add-todo-btn" class="btn">Add</button>
+                        </div>
+                        <ul id="todo-list"></ul>
+                    </div>
+                    <div class="notes-section">
+                        <h3>Notes</h3>
+                        <textarea id="notes-area" placeholder="Write your notes here..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="status-bar">
+            <ul class="tab-icons">
+                <li class="tab-icon active" data-tab="tab1"><span class="roman-numeral">I</span></li>
+                <li class="tab-icon" data-tab="tab2"><span class="roman-numeral">II</span></li>
+                <li class="tab-icon" data-tab="tab3"><span class="roman-numeral">III</span></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="shortcut-form" id="shortcut-form">
+        <h3>Add New Shortcut</h3>
+        <div class="form-group">
+            <label for="shortcut-category">Category (optional):</label>
+            <select id="shortcut-category">
+                <option value="">None</option>
+                <!-- Categories will be populated here -->
+            </select>
+        </div>
+        <div class="form-group">
+            <input type="text" id="shortcut-name" placeholder="Name" maxlength="15">
+        </div>
+        <div class="form-group">
+            <input type="url" id="shortcut-url" placeholder="URL (https://example.com)">
+        </div>
+        <!-- Delete option will be inserted here dynamically when editing -->
+        <div class="form-buttons">
+            <button id="save-shortcut" class="btn">Save</button>
+            <button id="cancel-shortcut" class="btn btn-cancel">Cancel</button>
+        </div>
+    </div>
+
+    <div class="add-shortcut-btn" id="add-shortcut-toggle">
+        <i class="fas fa-plus"></i>
+        <div class="add-dropdown">
+            <div class="add-option" id="add-website-option">
+                <i class="fas fa-link"></i> Add Website
+                <span class="option-counter" id="shortcuts-counter">0/30</span>
+            </div>
+            <div class="add-option" id="add-category-option">
+                <i class="fas fa-folder-plus"></i> Add Category
+                <span class="option-counter" id="categories-counter">0/10</span>
+            </div>
+            <!-- Improved edit mode toggle button with better accessibility -->
+            <button class="add-option" id="toggle-edit-mode" tabindex="0" role="button">
+                <i class="fas fa-edit"></i> <span id="edit-mode-label">Enable Editing</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="category-form" id="category-form">
+        <h3>Add New Category</h3>
+        <div class="form-group">
+            <input type="text" id="category-name" placeholder="Category Name" maxlength="20">
+        </div>
+        <!-- Delete option will be inserted here dynamically when editing -->
+        <div class="form-buttons">
+            <button id="save-category" class="btn">Save</button>
+            <button id="cancel-category" class="btn btn-cancel">Cancel</button>
+        </div>
+    </div>
+
+    <!-- New settings button for Tab3 -->
+    <div class="settings-btn" id="settings-toggle">
+        <i class="fas fa-cog"></i>
+    </div>
+    
+    <!-- Add new Tab1 settings button -->
+    <div class="tab1-settings-btn" id="tab1-settings-toggle">
+        <i class="fas fa-cog"></i>
+    </div>
+
+    <!-- New export/import form -->
+    <div class="settings-form" id="settings-form">
+        <h3>Export/Import Settings</h3>
+        <div class="settings-options">
+            <button id="export-btn" class="btn settings-btn-action">Export Settings</button>
+            <div class="form-group">
+                <label for="import-file">Import Settings:</label>
+                <input type="file" id="import-file" accept=".json">
+            </div>
+            <button id="import-btn" class="btn settings-btn-action">Import</button>
+        </div>
+        <!-- Add notification element outside of settings-options -->
+        <div id="import-notification" class="import-notification"></div>
+        
+        <!-- Add reset configuration section -->
+        <div class="reset-section">
+            <h4>Reset Configuration</h4>
+            <p class="reset-description">This will delete all shortcuts, notes, todos, and settings. This action cannot be undone.</p>
+            <button id="reset-config-btn" class="btn btn-danger">Reset All Data</button>
+        </div>
+        
+        <div class="form-buttons">
+            <button id="close-settings" class="btn btn-cancel">Close</button>
+        </div>
+    </div>
+
+    <!-- Add Tab1 settings form -->
+    <div class="settings-form" id="tab1-settings-form">
+        <h3>Tab Settings</h3>
+        <div class="tab-visibility-settings">
+            <div class="setting-item">
+                <label for="tab2-toggle" class="toggle-label">
+                    <span>Show Weather & Feeds Tab</span>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="tab2-toggle" checked>
+                        <span class="toggle-slider"></span>
+                    </div>
+                </label>
+            </div>
+            <div class="setting-item">
+                <label for="tab3-toggle" class="toggle-label">
+                    <span>Show Notes & Todo Tab</span>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="tab3-toggle" checked>
+                        <span class="toggle-slider"></span>
+                    </div>
+                </label>
+            </div>
+        </div>
+        <div class="form-buttons">
+            <button id="save-tab1-settings" class="btn settings-btn-action">Save</button>
+            <button id="close-tab1-settings" class="btn btn-cancel">Close</button>
+        </div>
+    </div>
+
+    <!-- Add new tab2 settings button -->
+    <div class="tab2-settings-btn" id="tab2-settings-toggle">
+        <i class="fas fa-cog"></i>
+    </div>
+
+    <!-- New RSS and weather settings form -->
+    <div class="settings-form" id="tab2-settings-form">
+        <h3>Weather & Feeds Settings</h3>
+        <div class="settings-tabs">
+            <div class="settings-tab active" data-tab="weather-settings">Weather</div>
+            <div class="settings-tab" data-tab="rss-settings">Feeds</div>
+        </div>
+        
+        <div class="settings-panel active" id="weather-settings">
+            <div class="form-group">
+                <label for="weather-api-key">WeatherAPI.com API Key:</label>
+                <input type="text" id="weather-api-key" placeholder="Enter your API key">
+                <div class="api-help-text">Get a free API key from <a href="https://www.weatherapi.com/signup.aspx" target="_blank" rel="noopener noreferrer">WeatherAPI.com</a></div>
+            </div>
+            <div class="form-group">
+                <label>Location:</label>
+                <div class="location-options">
+                    <button id="use-geolocation" class="btn mini-btn">Use My Location</button>
+                    <div class="location-separator">- or -</div>
+                    <input type="text" id="weather-city" placeholder="Enter city name">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Units:</label>
+                <div class="unit-selector">
+                    <label><input type="radio" name="temp-units" value="imperial" checked> Fahrenheit</label>
+                    <label><input type="radio" name="temp-units" value="metric"> Celsius</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="settings-panel" id="rss-settings">
+            <div class="rss-feeds-list">
+                <div id="rss-feeds-container">
+                    <!-- Feeds will be listed here -->
+                </div>
+                <button id="add-feed-btn" class="btn mini-btn add-btn">
+                    <i class="fas fa-plus"></i> Add New Feed
+                </button>
+            </div>
+            <div class="add-feed-form" style="display: none;">
+                <div class="form-group">
+                    <label for="feed-name">Feed Name:</label>
+                    <input type="text" id="feed-name" placeholder="e.g. Tech News">
+                </div>
+                <div class="form-group">
+                    <label for="feed-url">Feed URL:</label>
+                    <input type="url" id="feed-url" placeholder="https://example.com/feed">
+                    <div class="api-help-text">
+                        Supports RSS, Atom, JSON Feed, and more. Works with:
+                        <ul class="format-list">
+                            <li><i class="fas fa-check"></i> Standard RSS and Atom feeds</li>
+                            <li><i class="fas fa-check"></i> RSSBridge feeds (Twitter, Reddit, etc.)</li>
+                            <li><i class="fas fa-check"></i> JSON Feed format</li>
+                            <li><i class="fas fa-check"></i> Media RSS (MRSS)</li>
+                        </ul>
+                        <a href="https://github.com/RSS-Bridge/rss-bridge/wiki" target="_blank">Learn about RSSBridge <i class="fas fa-external-link-alt fa-xs"></i></a>
+                    </div>
+                </div>
+                <button id="save-feed-btn" class="btn mini-btn">Save Feed</button>
+                <button id="cancel-feed-btn" class="btn mini-btn cancel-btn">Cancel</button>
+            </div>
+        </div>
+        
+        <div class="form-buttons"></div>
+            <button id="save-tab2-settings" class="btn settings-btn-action">Save Settings</button>
+            <button id="close-tab2-settings" class="btn btn-cancel">Close</button>
+        </div>
+    </div>
+
+    <!-- New background config button -->
+    <div class="bg-config-btn" id="bg-config-toggle">
+        <i class="fas fa-image"></i>
+    </div>
+
+    <!-- New background selector form -->
+    <div class="settings-form" id="background-form">
+        <h3>Background Settings</h3>
+        <div class="bg-options">
+            <div class="bg-selector-heading">Choose Background:</div>
+            <div class="bg-selector">
+                <div class="bg-option" data-bg="img/Wallpaper-1.jpg">
+                    <img src="img/Wallpaper-1.jpg" alt="Background 1">
+                    <span class="bg-check"><i class="fas fa-check"></i></span>
+                </div>
+                <div class="bg-option" data-bg="img/Wallpaper-2.jpg">
+                    <img src="img/Wallpaper-2.jpg" alt="Background 2">
+                    <span class="bg-check"><i class="fas fa-check"></i></span>
+                </div>
+                <div class="bg-option" data-bg="img/Wallpaper-3.jpg">
+                    <img src="img/Wallpaper-3.jpg" alt="Background 3">
+                    <span class="bg-check"><i class="fas fa-check"></i></span>
+                </div>
+                <div class="bg-option" data-bg="img/Wallpaper-4.jpg">
+                    <img src="img/Wallpaper-4.jpg" alt="Background 4">
+                    <span class="bg-check"><i class="fas fa-check"></i></span>
+                </div>
+            </div>
+            <div class="custom-bg-section">
+                <div class="form-group">
+                    <label for="custom-bg-url">Custom Background URL:</label>
+                    <input type="url" id="custom-bg-url" placeholder="https://example.com/image.jpg">
+                </div>
+                <button id="apply-custom-bg" class="btn mini-btn">Apply Custom Background</button>
+            </div>
+            
+            <!-- New blur adjustment section -->
+            <div class="blur-adjustment-section">
+                <div class="form-group">
+                    <label for="blur-slider">Window Blur Level: <span id="blur-value">10px</span></label>
+                    <input type="range" id="blur-slider" min="0" max="30" value="10" class="blur-slider">
+                </div>
+                <button id="reset-blur" class="btn mini-btn">Reset to Default</button>
+            </div>
+        </div>
+        <div class="form-buttons">
+            <button id="close-bg-settings" class="btn btn-cancel">Close</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
