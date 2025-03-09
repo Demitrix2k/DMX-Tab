@@ -250,8 +250,14 @@
             <div class="form-group">
                 <label>Units:</label>
                 <div class="unit-selector">
-                    <label><input type="radio" name="temp-units" value="imperial" checked> Fahrenheit</label>
-                    <label><input type="radio" name="temp-units" value="metric"> Celsius</label>
+                    <label>
+                        <input type="radio" name="temp-units" value="imperial" checked>
+                        <span>Fahrenheit</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="temp-units" value="metric">
+                        <span>Celsius</span>
+                    </label>
                 </div>
             </div>
         </div>
@@ -289,7 +295,7 @@
             </div>
         </div>
         
-        <div class="form-buttons"></div>
+        <div class="form-buttons">
             <button id="save-tab2-settings" class="btn settings-btn-action">Save Settings</button>
             <button id="close-tab2-settings" class="btn btn-cancel">Close</button>
         </div>

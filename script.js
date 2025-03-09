@@ -716,11 +716,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const shortcuts = JSON.parse(localStorage.getItem('dmx-shortcuts')) || [];
         const notes = localStorage.getItem('dmx-notes') || '';
         const todos = JSON.parse(localStorage.getItem('dmx-todos')) || [];
+        const weatherSettings = JSON.parse(localStorage.getItem('dmx-weather-settings')) || {};
+        const rssFeeds = JSON.parse(localStorage.getItem('dmx-rss-feeds')) || [];
         
         const settings = {
             shortcuts: shortcuts,
             notes: notes,
-            todos: todos
+            todos: todos,
+            weatherSettings: weatherSettings,
+            rssFeeds: rssFeeds
         };
         
         const dataStr = JSON.stringify(settings, null, 2);
@@ -734,7 +738,7 @@ document.addEventListener('DOMContentLoaded', function() {
         linkElement.click();
     });
     
-    // Update import to handle simplified data structure
+    // Update import to handle expanded data structure
     importBtn.addEventListener('click', () => {
         const file = importFile.files[0];
         if (!file) {
@@ -766,7 +770,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     loadTodoItems();
                 }
                 
+                // Import weather settings if present
+                if (settings.weatherSettings) {
+                    localStorage.setItem('dmx-weather-settings', JSON.stringify(settings.weatherSettings));
+                    // Reset weather loading flag to trigger a reload
+                    weatherDataLoaded = false;
+                }
+                
+                // Import RSS feeds if present
+                if (settings.rssFeeds) {
+                    localStorage.setItem('dmx-rss-feeds', JSON.stringify(settings.rssFeeds));
+                    // Reset RSS loading flag to trigger a reload
+                    rssDataLoaded = false;
+                }
+                
+                // Load saved data
                 loadShortcuts();
+                
+                // Reload weather and RSS data if we're on Tab2
+                if (currentTabIndex === 1) {
+                    loadWeatherData();
+                    loadRssData();
+                }
                 
                 showImportNotification('Settings imported successfully!', 'success');
             } catch (error) {
