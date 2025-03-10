@@ -6,6 +6,9 @@ A customized new tab page providing:
 - Shortcut sections
 - Minimal, clean UI
 
+
+Try out the tab page [here](https://demitrix2k.github.io/DMX-Tab/)
+
 ![Showcase](showcase.png)
 
 ## Features
