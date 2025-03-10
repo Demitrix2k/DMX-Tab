@@ -84,10 +84,31 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeTab1SettingsBtn = document.getElementById('close-tab1-settings');
     const tab2Toggle = document.getElementById('tab2-toggle');
     const tab3Toggle = document.getElementById('tab3-toggle');
+    const newTabToggle = document.getElementById('new-tab-toggle');
     
     // ========== FUNCTION DECLARATIONS ==========
     // Function to switch tabs with slide animation
     function switchTab(tabId) {
+        // Close dropdown menu when switching tabs
+        if (dropdown) {
+            dropdown.style.display = 'none';
+        }
+        
+        // Close tab2 settings form when switching tabs
+        if (tab2SettingsForm) {
+            tab2SettingsForm.classList.remove('active');
+        }
+        
+        // Also close tab1 settings form when switching tabs
+        if (tab1SettingsForm) {
+            tab1SettingsForm.classList.remove('active');
+        }
+        
+        // Close tab3 settings form (main settings) when switching tabs
+        if (settingsForm) {
+            settingsForm.classList.remove('active');
+        }
+        
         // Check if the requested tab is hidden
         const targetTab = document.getElementById(tabId);
         if (targetTab && targetTab.classList.contains('tab-hidden')) {
@@ -399,8 +420,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const linkElement = document.createElement('a');
         linkElement.href = shortcut.url;
         linkElement.className = 'shortcut-link';
-        linkElement.target = '_blank'; // Opens in new tab by default
-        linkElement.rel = 'noopener noreferrer'; // Security best practice
+        
+        // Check if shortcuts should open in new tab
+        const tabSettings = JSON.parse(localStorage.getItem('dmx-tab-visibility')) || {};
+        if (tabSettings.openInNewTab === true) { // Open-in-New Tab setting disabled by default
+            linkElement.target = '_blank';
+            linkElement.rel = 'noopener noreferrer'; // Security best practice
+        }
         
         // Get favicon or use default icon
         const iconElement = document.createElement('div');
@@ -1088,6 +1114,28 @@ document.addEventListener('DOMContentLoaded', function() {
             dropdown.style.display = 'none';
         } else {
             dropdown.style.display = 'block';
+        }
+        
+        // Prevent this click from being caught by our document click handler
+        e.stopPropagation();
+    });
+    
+    // Close dropdown when mouse leaves the dropdown area
+    if (dropdown) {
+        dropdown.addEventListener('mouseleave', () => {
+            setTimeout(() => {
+                dropdown.style.display = 'none';
+            }, 300); // Small delay to make it feel less abrupt
+        });
+    }
+    
+    // Close dropdown when clicking anywhere else on the page
+    document.addEventListener('click', (e) => {
+        if (dropdown && 
+            dropdown.style.display === 'block' && 
+            !dropdown.contains(e.target) && 
+            !addShortcutBtn.contains(e.target)) {
+            dropdown.style.display = 'none';
         }
     });
     
@@ -1989,13 +2037,17 @@ document.addEventListener('DOMContentLoaded', function() {
         saveTab1SettingsBtn.addEventListener('click', () => {
             const settings = {
                 showTab2: tab2Toggle.checked,
-                showTab3: tab3Toggle.checked
+                showTab3: tab3Toggle.checked,
+                openInNewTab: newTabToggle.checked
             };
             
             localStorage.setItem('dmx-tab-visibility', JSON.stringify(settings));
             
             // Apply settings
             applyTabVisibilitySettings(settings);
+            
+            // Reload shortcuts to apply new tab setting
+            loadShortcuts();
             
             // Close form
             tab1SettingsForm.classList.remove('active');
@@ -2006,13 +2058,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadTabVisibilitySettings() {
         const savedSettings = JSON.parse(localStorage.getItem('dmx-tab-visibility')) || {
             showTab2: true,
-            showTab3: true
+            showTab3: true,
+            openInNewTab: false  // Disabled by default
         };
         
         tab2Toggle.checked = savedSettings.showTab2;
         tab3Toggle.checked = savedSettings.showTab3;
+        newTabToggle.checked = savedSettings.openInNewTab === true; 
     }
-    
+
     // Apply tab visibility settings
     function applyTabVisibilitySettings(settings) {
         // Get tab elements
