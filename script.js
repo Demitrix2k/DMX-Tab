@@ -1,3 +1,50 @@
+// Improved service worker registration with update handling
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(registration => {
+        console.log('Service Worker registered with scope:', registration.scope);
+        
+        // Check for updates to the service worker
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          console.log('Service Worker update found!');
+          
+          newWorker.addEventListener('statechange', () => {
+            // When the new service worker is installed and waiting
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log('New service worker installed, but waiting.');
+              
+              // Notify user that an update is available
+              if (window.offlineManager) {
+                // Optional: Show update notification through offline manager
+              }
+            }
+          });
+        });
+        
+        // Check if there is a waiting service worker
+        if (registration.waiting) {
+          console.log('New service worker waiting to activate');
+          // Optional: Show update ready notification
+        }
+      })
+      .catch(error => {
+        console.error('Service Worker registration failed:', error);
+      });
+      
+    // Handle service worker updates
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        console.log('New service worker activated, reloading page...');
+        window.location.reload();
+      }
+    });
+  });
+}
+
 // ========== VARIABLE DECLARATIONS ==========
 document.addEventListener('DOMContentLoaded', function() {
     const mainWindow = document.getElementById('main-window');
