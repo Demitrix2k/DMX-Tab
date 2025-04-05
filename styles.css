@@ -100,24 +100,19 @@ body {
     width: 100%;
 }
 
-
 .tab-icon[data-tab="tab1"].active::after {
-    /* transform: translateX(-57%); */
     transform: translateX(-55%);
     width: 23px;
 }
 
-
 .tab-icon[data-tab="tab2"].active::after {
-    /* transform: translateX(-55%); */
     transform: translateX(-55%);
     width: 25px;
 }
 
 /* Tab 3 (III) - wider with more offset */
 .tab-icon[data-tab="tab3"].active::after {
-    /* transform: translateX(-50%);  */
-    transform: translateX(-54%); 
+    transform: translateX(-54%);
     width: 30px;
 }
 
@@ -1135,7 +1130,6 @@ body.edit-mode .shortcut-item:hover {
     flex: 1;
     background-color: rgba(26, 27, 38, 0.5);
     border-radius: 8px;
-    /* padding: 20px; */
     padding: 5px 20px 20px 20px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     height: 100%;
@@ -1617,7 +1611,16 @@ body:not(.edit-mode) .edit-instructions {
     overflow: hidden;
     transition: all 0.3s ease;
     text-decoration: none; /* Remove default link styling */
-    height: 100px; /* Fixed height for consistency */
+    margin-bottom: 15px; /* Add margin between articles */
+}
+
+.news-article.has-thumbnail {
+    height: 100px; /* Fixed height for articles with thumbnails */
+}
+
+.news-article.no-thumbnail {
+    height: 80px; /* Shorter height for articles without thumbnails */
+    padding-left: 15px; /* Add padding on the left since there's no image */
 }
 
 .news-article:hover {
@@ -1643,11 +1646,15 @@ body:not(.edit-mode) .edit-instructions {
     overflow: hidden;
 }
 
+.news-content.full-width {
+    padding: 12px 15px; /* More padding for full-width content */
+}
+
 .news-title {
     font-size: 14px;
     font-weight: 500;
     color: #c0caf5;
-    margin-bottom: 5px;
+/*     margin-bottom: 5px; */
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -1655,10 +1662,16 @@ body:not(.edit-mode) .edit-instructions {
     text-overflow: ellipsis;
 }
 
+.no-thumbnail .news-title {
+    font-size: 15px; /* Slightly larger title for no-thumbnail layout */
+/*     margin-bottom: 6px; */
+}
+
 .news-source {
     font-size: 12px;
     color: #7aa2f7;
     margin-bottom: auto;
+    align-self: flex-end;
 }
 
 .news-date {
@@ -1666,6 +1679,23 @@ body:not(.edit-mode) .edit-instructions {
     color: #787c99;
     margin-top: 5px;
     align-self: flex-end;
+}
+
+/* Media query for smaller screens */
+@media (max-width: 768px) {
+    .news-article.no-thumbnail {
+        height: 70px; /* Even shorter on mobile */
+        padding-left: 12px;
+    }
+    
+    .news-content.full-width {
+        padding: 10px 12px;
+    }
+    
+    .no-thumbnail .news-title {
+        font-size: 14px;
+        -webkit-line-clamp: 2;
+    }
 }
 
 /* Ensure loading and error displays take full height too */

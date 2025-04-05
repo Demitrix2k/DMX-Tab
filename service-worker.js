@@ -83,7 +83,8 @@ self.addEventListener('fetch', event => {
   // Skip API requests that shouldn't be cached
   if (event.request.url.includes('weatherapi.com') || 
       event.request.url.includes('rss2json.com') || 
-      event.request.url.includes('corsproxy.io')) {
+      event.request.url.includes('allorigins.win') ||
+      event.request.url.includes('jsonp.io')) {
     return; // Don't handle - let browser handle as usual
   }
   

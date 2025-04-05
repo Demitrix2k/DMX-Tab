@@ -1356,13 +1356,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // RSS Data Function - Updated to better handle diverse feed formats including RSSBridge
+    // RSS Data Function with improved Google News handling
     function loadRssData() {
         const rssLoading = document.getElementById('rss-loading');
         const rssError = document.getElementById('rss-error');
         const rssContent = document.getElementById('rss-content');
-        
-        // No longer checking if tab is active - we want to load regardless
         
         // Reset display states
         rssLoading.style.display = 'block';
@@ -1375,132 +1373,148 @@ document.addEventListener('DOMContentLoaded', function() {
         if (feeds.length === 0) {
             rssLoading.style.display = 'none';
             rssError.style.display = 'block';
+            rssError.textContent = 'No feeds configured. Click the settings button to add feeds.';
             rssDataLoaded = true; // Mark as loaded even with no feeds
             return;
         }
         
-        // Array to hold all feed items from different feeds
         let allItems = [];
         let loadedFeeds = 0;
         let failedFeeds = 0;
-        
-        // Process each feed
-        feeds.forEach((feed, index) => {
-            // Check if the URL is likely an RSSBridge or direct feed URL (containing format=Atom, format=Mrss, etc.)
-            const isDirectFeed = feed.url.includes('format=') || 
-                                feed.url.includes('.atom') || 
-                                feed.url.includes('.xml') || 
-                                feed.url.includes('/rss');
-                
-            // For direct feeds (especially from RSSBridge), use a CORS proxy
-            if (isDirectFeed) {
-                const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(feed.url)}`;
-                fetch(corsProxyUrl)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`Feed returned status: ${response.status}`);
-                        }
-                        return response.text(); // Get as text for XML parsing
-                    })
-                    .then(xmlText => {
-                        // Parse XML using DOMParser
-                        const parser = new DOMParser();
-                        const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-                        
-                        // Process based on feed type (RSS or Atom)
-                        let items = [];
-                        
-                        // Check if it's an Atom feed (has <entry> tags)
-                        const entries = xmlDoc.querySelectorAll('entry');
-                        if (entries.length > 0) {
-                            // Process Atom entries
-                            entries.forEach(entry => {
-                                const title = entry.querySelector('title')?.textContent || 'No Title';
-                                const link = entry.querySelector('link[rel="alternate"]')?.getAttribute('href') || 
-                                            entry.querySelector('link')?.getAttribute('href') || '#';
-                                const pubDate = entry.querySelector('published')?.textContent || 
-                                              entry.querySelector('updated')?.textContent || 
-                                              new Date().toISOString();
-                                              
-                                const content = entry.querySelector('content')?.textContent || 
-                                               entry.querySelector('summary')?.textContent || '';
-                                               
-                                // Try to find an image
-                                let thumbnail = '';
-                                const mediaContent = entry.querySelector('media\\:content, content');
-                                if (mediaContent) {
-                                    thumbnail = mediaContent.getAttribute('url') || '';
-                                }
-                                
-                                items.push({
-                                    title,
-                                    link,
-                                    pubDate,
-                                    content,
-                                    thumbnail,
-                                    source: feed.name
-                                });
-                            });
-                        } else {
-                            // Check if it's an RSS feed (has <item> tags)
-                            const rssItems = xmlDoc.querySelectorAll('item');
-                            if (rssItems.length > 0) {
-                                rssItems.forEach(item => {
-                                    const title = item.querySelector('title')?.textContent || 'No Title';
-                                    const link = item.querySelector('link')?.textContent || '#';
-                                    const pubDate = item.querySelector('pubDate')?.textContent || 
-                                                  new Date().toISOString();
-                                    const content = item.querySelector('description')?.textContent || '';
-                                    
-                                    // Try to find an image
-                                    let thumbnail = '';
-                                    const mediaContent = item.querySelector('media\\:content, content, enclosure');
-                                    if (mediaContent) {
-                                        thumbnail = mediaContent.getAttribute('url') || '';
-                                    }
-                                    
-                                    items.push({
-                                        title,
-                                        link,
-                                        pubDate,
-                                        content,
-                                        thumbnail,
-                                        source: feed.name
-                                    });
-                                });
-                            } else {
-                                throw new Error('Unknown feed format');
-                            }
-                        }
-                        
-                        // Add the items to our collection
-                        allItems = [...allItems, ...items];
-                    })
-                    .catch(error => {
-                        console.error(`Error fetching direct feed ${feed.name}:`, error);
-                        failedFeeds++;
-                        
-                        // Fallback to RSS2JSON if direct parsing fails
-                        tryRSS2JSON(feed);
-                    })
-                    .finally(() => {
-                        loadedFeeds++;
-                        checkAllFeedsProcessed();
-                    });
+
+        // Process all feeds
+        feeds.forEach(feed => {
+            // Check if it's a Google News feed
+            if (feed.url.includes('news.google.com')) {
+                tryGoogleNewsFeed(feed);
             } else {
-                // For regular feeds, use the RSS2JSON service as before
+                // For all other feeds, use RSS2JSON
                 tryRSS2JSON(feed);
             }
         });
+
+        // Helper function to handle Google News feeds specifically
+        function tryGoogleNewsFeed(feed) {
+            console.log(`Fetching Google News feed: ${feed.name}`);
+            
+            // Use a more powerful proxy specifically designed for Google News feeds
+            const googleNewsProxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(feed.url);
+            
+            fetch(googleNewsProxyUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`AllOrigins proxy returned status: ${response.status} for ${feed.name}`);
+                    }
+                    return response.text(); // Google News feeds are XML, so we get the raw text
+                })
+                .then(xmlText => {
+                    // Parse the XML manually
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+                    
+                    // Extract items from the XML
+                    const items = xmlDoc.querySelectorAll('item');
+                    
+                    if (items.length > 0) {
+                        const parsedItems = Array.from(items).map(item => {
+                            // Extract essential RSS elements
+                            const title = item.querySelector('title')?.textContent || 'No Title';
+                            const link = item.querySelector('link')?.textContent || '#';
+                            const pubDate = item.querySelector('pubDate')?.textContent || new Date().toUTCString();
+                            const description = item.querySelector('description')?.textContent || '';
+                            
+                            // Create item object in the format our display function expects
+                            return {
+                                title: title,
+                                link: link,
+                                pubDate: pubDate,
+                                description: description,
+                                source: feed.name,
+                                thumbnail: '' // Don't add a thumbnail for Google News feeds
+                            };
+                        });
+                        
+                        // Add items to our collection
+                        allItems = [...allItems, ...parsedItems];
+                    } else {
+                        throw new Error(`No items found in ${feed.name} feed`);
+                    }
+                })
+                .catch(error => {
+                    console.error(`Error fetching Google News feed ${feed.name}:`, error);
+                    
+                    // As a last resort, try a different proxy
+                    tryLastResortProxy(feed);
+                    
+                    failedFeeds++;
+                })
+                .finally(() => {
+                    loadedFeeds++;
+                    checkAllFeedsProcessed();
+                });
+        }
         
-        // Helper function to try the RSS2JSON service
+        // Last resort proxy for difficult feeds
+        function tryLastResortProxy(feed) {
+            console.log(`Trying last resort proxy for: ${feed.name}`);
+            
+            // Jsonp.io is another proxy service with different capabilities
+            const lastResortUrl = `https://jsonp.io/?url=${encodeURIComponent(feed.url)}`;
+            
+            fetch(lastResortUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Last resort proxy returned status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Try to extract content from the jsonp.io response
+                    if (data && data.contents) {
+                        // Parse the XML from the contents
+                        const parser = new DOMParser();
+                        const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+                        
+                        // Extract items from the XML
+                        const items = xmlDoc.querySelectorAll('item');
+                        
+                        if (items.length > 0) {
+                            const parsedItems = Array.from(items).map(item => {
+                                // Extract essential RSS elements
+                                const title = item.querySelector('title')?.textContent || 'No Title';
+                                const link = item.querySelector('link')?.textContent || '#';
+                                const pubDate = item.querySelector('pubDate')?.textContent || new Date().toUTCString();
+                                
+                                return {
+                                    title: title,
+                                    link: link,
+                                    pubDate: pubDate,
+                                    source: feed.name,
+                                    thumbnail: '' // Don't add a thumbnail for last resort feeds
+                                };
+                            });
+                            
+                            allItems = [...allItems, ...parsedItems];
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error(`Last resort proxy also failed for ${feed.name}:`, error);
+                    // We've already counted this as a failed feed, so no need to increment
+                });
+        }
+
+        // Helper function for regular RSS feeds using RSS2JSON
         function tryRSS2JSON(feed) {
+            console.log(`Fetching regular feed: ${feed.name} via RSS2JSON`);
+            
+            // Use the RSS2JSON API for regular feeds
             const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}&api_key=qbqvspwa1xgeozhgdiwu7rch5zvlmxdhgjcjboei`;
             
             fetch(apiUrl)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error(`Feed API returned status: ${response.status}`);
+                        throw new Error(`Feed API returned status: ${response.status} for ${feed.name}`);
                     }
                     return response.json();
                 })
@@ -1516,11 +1530,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         allItems = [...allItems, ...itemsWithSource];
                     } else {
                         // Handle API error response
-                        throw new Error(data.message || 'Failed to parse feed');
+                        throw new Error(data.message || `Failed to parse feed: ${feed.name}`);
                     }
                 })
                 .catch(error => {
                     console.error(`Error fetching feed ${feed.name} with RSS2JSON:`, error);
+                    
+                    // If RSS2JSON fails, try the alternative approach
+                    tryAlternativeRSSProxy(feed);
+                    
                     failedFeeds++;
                 })
                 .finally(() => {
@@ -1529,13 +1547,113 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         }
         
+        // Alternative proxy method as backup for regular feeds
+        function tryAlternativeRSSProxy(feed) {
+            console.log(`Trying alternative proxy for regular feed: ${feed.name}`);
+            
+            // Use allorigins as a backup
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}&callback=?`;
+            
+            fetch(proxyUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Alternative proxy returned status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data && data.contents) {
+                        try {
+                            // Try to parse as JSON first (some feeds return JSON)
+                            const jsonData = JSON.parse(data.contents);
+                            
+                            if (jsonData.items || jsonData.entries) {
+                                const items = jsonData.items || jsonData.entries;
+                                const processedItems = items.map(item => ({
+                                    title: item.title || 'No Title',
+                                    link: item.link || item.url || '#',
+                                    pubDate: item.pubDate || item.published || new Date().toUTCString(),
+                                    description: item.description || item.content || item.summary || '',
+                                    source: feed.name,
+                                    thumbnail: '' // Don't add a thumbnail for alternative proxy feeds
+                                }));
+                                
+                                allItems = [...allItems, ...processedItems];
+                                return;
+                            }
+                        } catch (e) {
+                            // Not JSON, try to parse as XML
+                            const parser = new DOMParser();
+                            const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+                            
+                            // Try to detect feed type (RSS or Atom)
+                            const isAtom = xmlDoc.querySelector('feed') !== null;
+                            
+                            if (isAtom) {
+                                // Parse Atom feed
+                                const entries = xmlDoc.querySelectorAll('entry');
+                                if (entries.length > 0) {
+                                    const parsedItems = Array.from(entries).map(entry => {
+                                        const title = entry.querySelector('title')?.textContent || 'No Title';
+                                        const link = entry.querySelector('link[rel="alternate"]')?.getAttribute('href') || 
+                                                   entry.querySelector('link')?.getAttribute('href') || '#';
+                                        const pubDate = entry.querySelector('updated')?.textContent || 
+                                                      entry.querySelector('published')?.textContent || 
+                                                      new Date().toUTCString();
+                                        
+                                        return {
+                                            title: title,
+                                            link: link,
+                                            pubDate: pubDate,
+                                            source: feed.name,
+                                            thumbnail: '' // Don't add a thumbnail for Atom feeds
+                                        };
+                                    });
+                                    
+                                    allItems = [...allItems, ...parsedItems];
+                                }
+                            } else {
+                                // Parse RSS feed
+                                const items = xmlDoc.querySelectorAll('item');
+                                if (items.length > 0) {
+                                    const parsedItems = Array.from(items).map(item => {
+                                        const title = item.querySelector('title')?.textContent || 'No Title';
+                                        const link = item.querySelector('link')?.textContent || '#';
+                                        const pubDate = item.querySelector('pubDate')?.textContent || new Date().toUTCString();
+                                        
+                                        return {
+                                            title: title,
+                                            link: link,
+                                            pubDate: pubDate,
+                                            source: feed.name,
+                                            thumbnail: '' // Don't add a thumbnail for RSS feeds
+                                        };
+                                    });
+                                    
+                                    allItems = [...allItems, ...parsedItems];
+                                }
+                            }
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error(`Error with alternative proxy for ${feed.name}:`, error);
+                    // Don't increment failedFeeds here as the primary method already counted it
+                });
+        }
+        
         // Helper function to check if all feeds have been processed
         function checkAllFeedsProcessed() {
             if (loadedFeeds === feeds.length) {
+                rssLoading.style.display = 'none'; // Hide loading indicator
+                
                 if (allItems.length > 0) {
                     // Sort items by date (newest first)
                     allItems.sort((a, b) => {
-                        return new Date(b.pubDate) - new Date(a.pubDate);
+                        // Add error handling for invalid dates
+                        const dateA = new Date(a.pubDate || 0);
+                        const dateB = new Date(b.pubDate || 0);
+                        return dateB - dateA;
                     });
                     
                     // Display the combined items
@@ -1543,9 +1661,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     rssDataLoaded = true; // Mark RSS as loaded when successful
                 } else {
                     // No items were successfully loaded
-                    rssLoading.style.display = 'none';
                     rssError.style.display = 'block';
-                    rssError.textContent = 'Failed to load feeds. Please check your feed URLs.';
+                    if (failedFeeds === feeds.length) {
+                        rssError.textContent = 'Failed to load all feeds. Check URLs or network connection.';
+                    } else {
+                        rssError.textContent = 'No articles found in the successfully loaded feeds.';
+                    }
                     rssDataLoaded = true; // Mark as loaded even if there's an error
                 }
             }
@@ -1567,7 +1688,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Create and append feed article elements
                 items.forEach(item => {
                     const articleElement = document.createElement('a');
-                    articleElement.className = 'news-article';
+                    
+                    // Look for images in various possible locations depending on feed format
+                    let hasThumbnail = false;
+                    let imageUrl = '';
+                    
+                    // Check for thumbnail in various possible locations
+                    if (item.thumbnail && item.thumbnail !== '') {
+                        imageUrl = item.thumbnail;
+                        hasThumbnail = true;
+                    } else if (item.enclosure && item.enclosure.link) {
+                        imageUrl = item.enclosure.link;
+                        hasThumbnail = true;
+                    } else if (item.image) {
+                        imageUrl = item.image;
+                        hasThumbnail = true;
+                    }
+                    
+                    // Add appropriate class based on thumbnail availability
+                    articleElement.className = hasThumbnail ? 'news-article has-thumbnail' : 'news-article no-thumbnail';
                     articleElement.href = item.link || item.url || '#';
                     articleElement.target = '_blank';
                     articleElement.rel = 'noopener noreferrer';
@@ -1586,33 +1725,27 @@ document.addEventListener('DOMContentLoaded', function() {
                         formattedDate = 'Unknown date';
                     }
                     
-                    // Use thumbnail image from item or fallback
-                    let imageUrl = 'https://via.placeholder.com/100x100.png?text=No+Image';
-                    
-                    // Look for images in various possible locations depending on feed format
-                    if (item.thumbnail && item.thumbnail !== '') {
-                        imageUrl = item.thumbnail;
-                    } else if (item.enclosure && item.enclosure.link) {
-                        imageUrl = item.enclosure.link;
-                    } else if (item.image) {
-                        imageUrl = typeof item.image === 'string' ? item.image : (item.image.url || imageUrl);
-                    } else if (item.content && item.content.match(/<img[^>]+src=["']([^"']+)["']/)) {
-                        // Try to extract first image from content if available
-                        const match = item.content.match(/<img[^>]+src=["']([^"']+)["']/);
-                        if (match && match[1]) {
-                            imageUrl = match[1];
-                        }
+                    // Create article HTML with conditional layout - completely different structures
+                    if (hasThumbnail) {
+                        // Standard layout with thumbnail
+                        articleElement.innerHTML = `
+                            <div class="news-image" style="background-image: url('${imageUrl}')"></div>
+                            <div class="news-content">
+                                <div class="news-title">${item.title}</div>
+                                <div class="news-source">${item.source}</div>
+                                <div class="news-date">${formattedDate}</div>
+                            </div>
+                        `;
+                    } else {
+                        // Text-only layout without image or favicon area
+                        articleElement.innerHTML = `
+                            <div class="news-content full-width">
+                                <div class="news-title">${item.title}</div>
+                                <div class="news-source">${item.source}</div>
+                                <div class="news-date">${formattedDate}</div>
+                            </div>
+                        `;
                     }
-                    
-                    // Create article HTML
-                    articleElement.innerHTML = `
-                        <div class="news-image" style="background-image: url('${imageUrl}')"></div>
-                        <div class="news-content">
-                            <div class="news-title">${item.title}</div>
-                            <div class="news-source">${item.source}</div>
-                            <div class="news-date">${formattedDate}</div>
-                        </div>
-                    `;
                     
                     rssContent.appendChild(articleElement);
                 });
@@ -1632,9 +1765,8 @@ document.addEventListener('DOMContentLoaded', function() {
             rssError.textContent = 'Error displaying feeds.';
         }
     }
-
-    // ===== TAB2 - SETTINGS FUNCTIONALITY =====
     
+    // ===== TAB2 - SETTINGS FUNCTIONALITY =====
     // Toggle settings form for Tab2
     tab2SettingsBtn.addEventListener('click', () => {
         tab2SettingsForm.classList.toggle('active');
@@ -1777,7 +1909,6 @@ document.addEventListener('DOMContentLoaded', function() {
         feeds.forEach((feed, index) => {
             const feedItem = document.createElement('div');
             feedItem.className = 'rss-feed-item';
-            
             feedItem.innerHTML = `
                 <div class="feed-info">
                     <div class="feed-name">${feed.name}</div>
@@ -1881,7 +2012,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load Tab2 content at initialization
     loadWeatherData();
     loadRssData();
-
+    
     // ===== BACKGROUND CONFIGURATION =====
     const bgConfigBtn = document.getElementById('bg-config-toggle');
     const backgroundForm = document.getElementById('background-form');
@@ -2022,7 +2153,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('mousemove', function(e) {
         const windowHeight = window.innerHeight;
         const mouseY = e.clientY;
-        
+         
         // Show buttons only when mouse is in the bottom 20% of the viewport
         if (mouseY > windowHeight * 0.8) {
             document.body.classList.add('buttons-visible');
@@ -2063,7 +2194,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load background and blur settings on page load
     loadBackground();
     loadBlur();
-
+    
     // Toggle Tab1 settings form
     if (tab1SettingsBtn) {
         tab1SettingsBtn.addEventListener('click', () => {
@@ -2111,7 +2242,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         tab2Toggle.checked = savedSettings.showTab2;
         tab3Toggle.checked = savedSettings.showTab3;
-        newTabToggle.checked = savedSettings.openInNewTab === true; 
+        newTabToggle.checked = savedSettings.openInNewTab === true;
     }
 
     // Apply tab visibility settings
@@ -2152,7 +2283,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update available tabs for wheel scrolling
         updateTabNavigation();
     }
-    
+
     // Function to update tab navigation when visibility changes
     function updateTabNavigation() {
         // This empty function is intentional - it ensures any additional 
@@ -2162,7 +2293,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // The actual logic is now handled by the findNextVisibleTab and 
         // findPrevVisibleTab helper functions
     }
-    
+
     // Initialize tab visibility on page load
     function initTabVisibility() {
         const savedSettings = JSON.parse(localStorage.getItem('dmx-tab-visibility')) || {
@@ -2172,10 +2303,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         applyTabVisibilitySettings(savedSettings);
     }
-    
+
     // Add tab visibility initialization
     initTabVisibility();
-
+    
     // Update the add button display condition for Tab1
     if (tabContents[0].classList.contains('active')) { // If Tab1 is active
         addShortcutBtn.style.display = 'flex';
@@ -2183,107 +2314,98 @@ document.addEventListener('DOMContentLoaded', function() {
         tab2SettingsBtn.style.display = 'none';
         tab1SettingsBtn.style.display = 'flex'; // Show Tab1 settings button
     }
-});
 
-// Update the handleWindowResize function to ensure max 6 shortcuts per row
-function handleWindowResize() {
-    const shortcuts = JSON.parse(localStorage.getItem('dmx-shortcuts')) || [];
-    const shortcutCount = shortcuts.length;
-    const grid = document.getElementById('shortcuts-grid');
-    
-    // Remove any previous column layout classes
-    grid.className = grid.className.replace(/grid-col-\d+/g, '');
-    
-    // Reset any inline styles first
-    grid.style.padding = '';
-    grid.style.width = '';
-    grid.style.justifyContent = 'center';
-    
-    // Calculate max-width based on how many items we need to fit per row (max 6)
-    const itemWidth = shortcuts.length > 8 ? 150 : 160; // Use smaller width for lots of shortcuts
-    const gapWidth = 25;
-    const secondRowGap = 15;
-    
-    // Determine how many items we have in each row
-    const maxItemsPerRow = 6;
-    const firstRowItems = Math.min(shortcutCount, maxItemsPerRow);
-    
-    // Calculate max width for first row
-    const firstRowWidth = (itemWidth * firstRowItems) + (gapWidth * (firstRowItems - 1));
-    grid.style.maxWidth = `${firstRowWidth}px`;
-    
-    // Set max-width for grid based on the first row (which has the standard gap)
-    if (shortcutCount > 0) {
-        grid.classList.add(`grid-col-${Math.min(shortcutCount, maxItemsPerRow)}`);
-    }
-    
-    // Adjust padding based on number of shortcuts
-    if (shortcutCount > 6) {
-        grid.style.padding = '2% 15px'; // Less padding when we have multiple rows
-    } else {
-        grid.style.padding = '5% 15px'; // More padding for single row
-    }
-    
-    // Find and adjust individual rows
-    const rows = grid.querySelectorAll('.row');
-    if (rows.length > 0) {
-        // First row uses the standard gap
-        rows[0].style.gap = `${gapWidth}px`;
+    // Update the handleWindowResize function to ensure max 6 shortcuts per row
+    function handleWindowResize() {
+        const shortcuts = JSON.parse(localStorage.getItem('dmx-shortcuts')) || [];
+        const shortcutCount = shortcuts.length;
+        const grid = document.getElementById('shortcuts-grid');
         
-        // Adjust second row if exists
-        if (rows.length > 1) {
-            rows[1].style.gap = `${secondRowGap}px`;
+        // Remove any previous column layout classes
+        grid.className = grid.className.replace(/grid-col-\d+/g, '');
+        
+        // Reset any inline styles first
+        grid.style.padding = '';
+        grid.style.width = '';
+        grid.style.justifyContent = 'center';
+        
+        // Calculate max-width based on how many items we need to fit per row (max 6)
+        const itemWidth = shortcuts.length > 8 ? 150 : 160; // Use smaller width for lots of shortcuts
+        const gapWidth = 25;
+        
+        // Determine how many items we have in each row
+        const maxItemsPerRow = 6;
+        const firstRowItems = Math.min(shortcutCount, maxItemsPerRow);
+        
+        // Calculate max width for first row
+        const firstRowWidth = (itemWidth * firstRowItems) + (gapWidth * (firstRowItems - 1));
+        grid.style.maxWidth = `${firstRowWidth}px`;
+        
+        // Set max-width for grid based on the first row (which has the standard gap)
+        if (shortcutCount > 0) {
+            grid.classList.add(`grid-col-${Math.min(shortcutCount, maxItemsPerRow)}`);
+        }
+        
+        // Adjust padding based on number of shortcuts
+        if (shortcutCount > 6) {
+            grid.style.padding = '2% 15px'; // Less padding when we have multiple rows
+        } else {
+            grid.style.padding = '5% 15px'; // More padding for single row
+        }
+        
+        // Find and adjust individual rows
+        const rows = grid.querySelectorAll('.row');
+        if (rows.length > 0) {
+            // First row uses the standard gap
+            rows[0].style.gap = `${gapWidth}px`;
             
-            // Calculate appropriate max-width for second row
-            const secondRowItems = Math.min(shortcutCount - maxItemsPerRow, maxItemsPerRow);
-            if (secondRowItems > 0) {
-                // Second row has a smaller gap
-                const secondRowWidth = (itemWidth * secondRowItems) + (secondRowGap * (secondRowItems - 1));
-                rows[1].style.maxWidth = `${secondRowWidth}px`;
+            // Adjust second row if exists
+            if (rows.length > 1) {
+                const secondRowGap = 15; // Smaller gap
+                rows[1].style.gap = `${secondRowGap}px`;
+                
+                // Calculate appropriate max-width for second row
+                const secondRowItems = Math.min(shortcutCount - maxItemsPerRow, maxItemsPerRow);
+                if (secondRowItems > 0) {
+                    // Second row has a smaller gap
+                    const secondRowWidth = (itemWidth * secondRowItems) + (secondRowGap * (secondRowItems - 1));
+                    rows[1].style.maxWidth = `${secondRowWidth}px`;
+                }
             }
         }
+        
+        // Adjust spacing based on screen size
+        const screenWidth = window.innerWidth;
+        if (screenWidth <= 600) {
+            // Very small screens
+            rows.forEach((row, index) => {
+                if (index === 0) {
+                    row.style.gap = '10px';
+                } else if (index === 1) {
+                    row.style.gap = '5px'; // Even smaller for second row
+                }
+            });
+        } else if (screenWidth <= 900) {
+            // Small screens
+            rows.forEach((row, index) => {
+                if (index === 0) {
+                    row.style.gap = '15px';
+                } else if (index === 1) {
+                    row.style.gap = '10px'; // Smaller for second row
+                }
+            });
+        } else if (screenWidth <= 1200) {
+            // Medium screens
+            rows.forEach((row, index) => {
+                if (index === 0) {
+                    row.style.gap = '20px';
+                } else if (index === 1) {
+                    row.style.gap = '12px'; // Smaller for second row
+                }
+            });
+        } else {
+            // Large screens - use default gap settings defined earlier
+        }
     }
-    
-    // Adjust spacing based on screen size
-    const screenWidth = window.innerWidth;
-    if (screenWidth <= 600) {
-        // Very small screens
-        grid.style.gap = '10px';
-        
-        // Update each row's gap
-        rows.forEach((row, index) => {
-            if (index === 0) {
-                row.style.gap = '10px';
-            } else if (index === 1) {
-                row.style.gap = '5px'; // Even smaller for second row
-            }
-        });
-    } else if (screenWidth <= 900) {
-        // Small screens
-        grid.style.gap = '15px';
-        
-        // Update each row's gap
-        rows.forEach((row, index) => {
-            if (index === 0) {
-                row.style.gap = '15px';
-            } else if (index === 1) {
-                row.style.gap = '10px'; // Smaller for second row
-            }
-        });
-    } else if (screenWidth <= 1200) {
-        // Medium screens
-        grid.style.gap = '20px';
-        
-        // Update each row's gap
-        rows.forEach((row, index) => {
-            if (index === 0) {
-                row.style.gap = '20px';
-            } else if (index === 1) {
-                row.style.gap = '12px'; // Smaller for second row
-            }
-        });
-    } else {
-        // Large screens - use default gap settings defined earlier
-    }
-}
+});
 
