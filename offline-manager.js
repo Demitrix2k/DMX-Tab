@@ -169,6 +169,7 @@ class OfflineManager {
       
       // Set up a promise to handle the response
       const onlineCheckPromise = new Promise((resolve) => {
+        // Resolve the promise based on the service worker's response
         channel.port1.onmessage = (event) => {
           resolve(event.data.online);
         };
@@ -182,8 +183,9 @@ class OfflineManager {
       // Wait for response with timeout
       Promise.race([
         onlineCheckPromise,
-        new Promise(resolve => setTimeout(() => resolve(false), 3000)) // 3 sec timeout
+        new Promise(resolve => setTimeout(() => resolve(false), 3000)) // Timeout after 3 seconds
       ]).then(isOnline => {
+        // Update status based on the check result or timeout
         this.updateOnlineStatus(isOnline);
       });
     } else {

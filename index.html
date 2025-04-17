@@ -16,8 +16,9 @@
     <link rel="icon" href="favicon.ico" type="image/x-icon">
 </head>
 <body>
+    <div id="background-overlay"></div> <!-- Added overlay element -->
     <div class="container">
-        <div class="main-window" id="main-window">
+        <div class="main-window sharp" id="main-window">
             <div class="tab-content active" id="tab1">
                 <!-- <h2>Quick Launch</h2> -->
                 <div class="shortcuts-container">
@@ -34,7 +35,7 @@
             
             <div class="tab-content" id="tab2">
                 <div class="weather-news-container">
-                    <div class="weather-section">
+                    <div class="weather-section sharp">
                         <h3>Weather</h3>
                         <div id="weather-widget">
                             <div id="weather-loading" class="loading-indicator">
@@ -55,7 +56,7 @@
                                 </div>
                                 <div class="weather-metrics">
                                     <div class="weather-metric">
-                                        <i class="fas fa-wwind"></i>
+                                        <i class="fas fa-wind"></i>
                                         <span id="weather-wind">-- mph</span>
                                     </div>
                                     <div class="weather-metric">
@@ -66,7 +67,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="news-section">
+                    <div class="news-section sharp">
                         <h3>Feeds</h3>
                         <div id="rss-container">
                             <div id="rss-loading" class="loading-indicator">
@@ -86,7 +87,7 @@
             <div class="tab-content" id="tab3">
                <!--  <h2>Notes & Todo</h2> -->
                 <div class="tab3-container">
-                    <div class="todo-section">
+                    <div class="todo-section sharp">
                         <h3>Todo List</h3>
                         <div class="todo-input-container">
                             <input type="text" id="todo-input" placeholder="Add a new task...">
@@ -94,7 +95,7 @@
                         </div>
                         <ul id="todo-list"></ul>
                     </div>
-                    <div class="notes-section">
+                    <div class="notes-section sharp">
                         <h3>Notes</h3>
                         <textarea id="notes-area" placeholder="Write your notes here..."></textarea>
                     </div>
@@ -350,6 +351,22 @@
                     <input type="url" id="custom-bg-url" placeholder="https://example.com/image.jpg">
                 </div>
                 <button id="apply-custom-bg" class="btn mini-btn">Apply Custom Background</button>
+                
+                <!-- Updated Custom Color Section -->
+                <div class="form-group" style="margin-top: 15px;">
+                    <label for="custom-bg-color">Background Color / Overlay:</label>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <input type="color" id="custom-bg-color" value="#1a1b26">
+                        <button id="apply-custom-color" class="btn mini-btn">Apply Color/Overlay</button>
+                    </div>
+                    <div class="api-help-text">Sets solid background color OR a transparent overlay if background is an image.</div>
+                </div>
+
+                <!-- Added Opacity Slider for Overlay -->
+                <div class="form-group overlay-opacity-section">
+                    <label for="custom-color-opacity-slider">Overlay Opacity: <span id="custom-color-opacity-value">50%</span></label>
+                    <input type="range" id="custom-color-opacity-slider" min="0" max="100" value="50" class="opacity-slider">
+                </div>
             </div>
             
             <!-- New blur adjustment section -->
@@ -359,6 +376,19 @@
                     <input type="range" id="blur-slider" min="0" max="30" value="10" class="blur-slider">
                 </div>
                 <button id="reset-blur" class="btn mini-btn">Reset to Default</button>
+            </div>
+
+            <!-- New Sharp Borders Setting -->
+            <div class="sharp-borders-section" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #414868;">
+                <div class="setting-item">
+                    <label for="sharp-borders-toggle" class="toggle-label">
+                        <span>Enable Sharp Borders (No Rounded Corners)</span>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="sharp-borders-toggle">
+                            <span class="toggle-slider"></span>
+                        </div>
+                    </label>
+                </div>
             </div>
         </div>
         <div class="form-buttons">
