@@ -365,19 +365,52 @@
                 <!-- Added Opacity Slider for Overlay -->
                 <div class="form-group overlay-opacity-section">
                     <label for="custom-color-opacity-slider">Overlay Opacity: <span id="custom-color-opacity-value">50%</span></label>
-                    <input type="range" id="custom-color-opacity-slider" min="0" max="100" value="50" class="opacity-slider">
+                    <!-- Added opacity-slider class -->
+                    <input type="range" id="custom-color-opacity-slider" min="0" max="100" value="0" class="opacity-slider">
                 </div>
-            </div>
-            
-            <!-- New blur adjustment section -->
-            <div class="blur-adjustment-section">
-                <div class="form-group">
-                    <label for="blur-slider">Window Blur Level: <span id="blur-value">10px</span></label>
-                    <input type="range" id="blur-slider" min="0" max="30" value="10" class="blur-slider">
-                </div>
-                <button id="reset-blur" class="btn mini-btn">Reset to Default</button>
             </div>
 
+            <!-- New Window Style Adjustments Section -->
+            <div class="window-style-section" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #414868;">
+                <h4 class="form-group" >Window Style</h4>
+
+                <!-- Window Background Color/Opacity -->
+                <div class="window-background-section">
+                    <h4>Window Background</h4>
+                    <!-- Group color input and apply button -->
+                    <div class="form-group form-group-inline">
+                      <!--   <label for="window-bg-color">Color:</label> -->
+                        <input type="color" id="window-bg-color" value="#16161e">
+                        <button id="apply-window-bg" class="btn mini-btn">Apply</button> <!-- Changed text and removed width style -->
+                    </div>
+                    <!-- Opacity slider in its own group -->
+                    <div class="form-group">
+                        <label for="window-bg-opacity-slider">Opacity: <span id="window-bg-opacity-value">10%</span></label>
+                        <input type="range" id="window-bg-opacity-slider" min="0" max="100" value="10" class="opacity-slider">
+                    </div>
+                    <p class="setting-description">Adjusts the color and transparency of the main window background layer (over the blur).</p> <!-- Added description -->
+                </div>
+            <!-- New blur adjustment section -->
+            <div class="blur-adjustment-section">
+                <h4>Window Blur</h4>
+                <div class="form-group">
+                    <label for="blur-slider">Blur Amount: <span id="blur-value">10px</span></label>
+                    <input type="range" id="blur-slider" min="0" max="50" value="10" class="blur-slider">
+                    <!-- Renamed ID and updated text -->
+
+                </div>
+            </div>
+                <!-- Disable Window Shadow Setting -->
+                <div class="setting-item" style="margin-top: 10px;">
+                    <label for="disable-shadow-toggle" class="toggle-label">
+                        <span>Disable Window Shadow</span>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="disable-shadow-toggle">
+                            <span class="toggle-slider"></span>
+                        </div>
+                    </label>
+                </div>
+            </div>
             <!-- New Sharp Borders Setting -->
             <div class="sharp-borders-section" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #414868;">
                 <div class="setting-item">
@@ -390,11 +423,17 @@
                     </label>
                 </div>
             </div>
+            <button id="resetBackgroundSettingsBtn" class="btn mini-btn" style="margin-top: 10px;">Reset Window Styles</button>
+
+
         </div>
         <div class="form-buttons">
             <button id="close-bg-settings" class="btn btn-cancel">Close</button>
         </div>
     </div>
+
+    <!-- Add an overlay div for background color overlay -->
+    <div id="background-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; transition: background-color 0.3s ease, opacity 0.3s ease;"></div>
 
     <script src="script.js"></script>
     <script src="offline-manager.js"></script>

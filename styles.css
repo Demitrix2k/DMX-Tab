@@ -1,3 +1,57 @@
+:root {
+  --storm: #1a1b26;
+  --storm-darker: #0f1125; /* Custom */
+  --night: #24283b;
+  --night-darker: #1f2335; /* Custom */
+  --surface: #414868;
+  --surface-darker: #3b4261; /* Custom */
+  --subtle: #565f89;
+  --subtle-lighter: #616ca1; /* Custom */
+  --subtle-lighter2: #787c99; /* Custom */
+  --fg: #c0caf5;
+  --white: #ffffff;
+
+  --purple: #bb9af7;
+  --blue: #7aa2f7;
+  --blue-light: #89b4ff; /* Custom */
+  --green: #9ece6a;
+  --red: #f7768e;
+
+  /* Alpha Variants */
+  --storm-alpha-30: rgba(26, 27, 38, 0.3);
+  --storm-alpha-40: rgba(26, 27, 38, 0.4);
+  --storm-alpha-50: rgba(26, 27, 38, 0.5);
+  --storm-alpha-70: rgba(26, 27, 38, 0.7);
+  --storm-alpha-80: rgba(26, 27, 38, 0.8);
+  --storm-alpha-85: rgba(26, 27, 38, 0.85);
+  --storm-alpha-90: rgba(26, 27, 38, 0.9);
+  --storm-darker-alpha-90: rgba(15, 17, 37, 0.9); /* Custom */
+
+  --surface-alpha-40: rgba(41, 46, 66, 0.4);
+  --surface-alpha-50: rgba(65, 72, 104, 0.5); /* Custom - close enough */
+  --surface-alpha-60: rgba(41, 46, 66, 0.6);
+  --surface-alpha-70: rgba(41, 46, 66, 0.7);
+  --surface-alpha-80: rgba(41, 46, 66, 0.8);
+  --surface-alpha-85: rgba(41, 46, 66, 0.85);
+  --surface-alpha-90: rgba(41, 46, 66, 0.9);
+
+  --purple-alpha-10: rgba(187, 154, 247, 0.1);
+  --purple-alpha-20: rgba(187, 154, 247, 0.2);
+  --purple-alpha-40: rgba(187, 154, 247, 0.4);
+  --purple-alpha-50: rgba(187, 154, 247, 0.5);
+  --purple-alpha-70: rgba(187, 154, 247, 0.7);
+  --purple-alpha-80: rgba(187, 154, 247, 0.8);
+
+  --blue-alpha-05: rgba(122, 162, 247, 0.05);
+  --blue-alpha-20: rgba(122, 162, 247, 0.2);
+  --blue-alpha-30: rgba(122, 162, 247, 0.3);
+  --blue-alpha-50: rgba(122, 162, 247, 0.5);
+
+  --green-alpha-20: rgba(158, 206, 106, 0.2);
+
+  --red-alpha-20: rgba(247, 118, 142, 0.2);
+}
+
 /* ===== RESET & BASE STYLES ===== */
 * {
     margin: 0;
@@ -31,6 +85,16 @@ body {
     overflow: hidden;
 }
 
+/* Add class to disable main window shadow */
+body.no-shadow .main-window {
+    box-shadow: none !important;
+}
+
+/* Add class to disable status bar shadow */
+body.no-shadow .status-bar {
+    box-shadow: none !important;
+}
+
 .container {
     display: flex;
     flex-direction: column;
@@ -55,17 +119,20 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(22, 22, 30, 0.1);
-    backdrop-filter: blur(10px);
+    /* Use CSS variables with fallbacks */
+    background-color: var(--window-bg-before, rgba(22, 22, 30, 0.1));
+    backdrop-filter: blur(var(--window-blur, 10px));
     z-index: 0;
     border-radius: 10px 10px 0 0;
+    /* Add transition for smooth color/opacity changes */
+    transition: background-color 0.3s ease, backdrop-filter 0.3s ease;
 }
 
 /* ===== NAVIGATION / TABS ===== */
 .status-bar {
     width: 1200px;
     height: 32px;
-    background-color: rgba(26, 27, 38, 0.85);
+    background-color: var(--storm-alpha-85);
     backdrop-filter: blur(10px);
     border-radius: 0 0 10px 10px;
     display: flex;
@@ -83,7 +150,7 @@ body {
 }
 
 .tab-icon {
-    color: #565f89;
+    color: var(--subtle);
     font-size: 16px;
     cursor: pointer;
     transition: all 0.3s;
@@ -94,11 +161,11 @@ body {
 }
 
 .tab-icon:hover {
-    color: #7aa2f7;
+    color: var(--blue);
 }
 
 .tab-icon.active {
-    color: #bb9af7;
+    color: var(--purple);
     border-bottom: none;
     position: relative;
 }
@@ -107,7 +174,7 @@ body {
     content: '';
     position: absolute;
     height: 2px;
-    background-color: #bb9af7;
+    background-color: var(--purple);
     bottom: 0;
     left: 50%;
     transform: translateX(-50%);
@@ -171,12 +238,12 @@ body {
 
 .tab-content h2 {
     margin-bottom: 20px;
-    color: #c0caf5;
+    color: var(--fg);
     font-size: 28px;
 }
 
 .tab-content p {
-    color: #c0caf5;
+    color: var(--fg);
     font-size: 16px;
     line-height: 1.6;
 }
@@ -245,11 +312,11 @@ body {
 
 /* Section titles */
 .section-title {
-    color: #bb9af7;
+    color: var(--purple);
     font-size: 18px;
     margin-bottom: 15px;
     font-weight: 500;
-    border-bottom: 1px solid rgba(122, 162, 247, 0.2);
+    border-bottom: 1px solid var(--blue-alpha-20);
     padding-bottom: 5px;
 }
 
@@ -291,7 +358,7 @@ body {
 .shortcuts-right::-webkit-scrollbar-track,
 #notes-area::-webkit-scrollbar-track,
 #todo-list::-webkit-scrollbar-track {
-    background-color: rgba(26, 27, 38, 0.3);
+    background-color: var(--storm-alpha-30);
     border-radius: 4px;
     margin: 3px; /* Add margin to create separation */
 }
@@ -300,7 +367,7 @@ body {
 .shortcuts-right::-webkit-scrollbar-thumb,
 #notes-area::-webkit-scrollbar-thumb,
 #todo-list::-webkit-scrollbar-thumb {
-    background-color: rgba(122, 162, 247, 0.3);
+    background-color: var(--blue-alpha-30);
     border-radius: 4px;
     border: 1px solid transparent; /* Create a border for spacing */
     background-clip: padding-box; /* Ensure the background doesn't extend into the border */
@@ -312,7 +379,7 @@ body {
 #notes-area, 
 #todo-list {
     scrollbar-width: thin; /* Use the thin preset in Firefox */
-    scrollbar-color: rgba(122, 162, 247, 0.3) rgba(26, 27, 38, 0.3);
+    scrollbar-color: var(--blue-alpha-30) var(--storm-alpha-30);
 }
 
 /* ===== SHORTCUTS GRID ===== */
@@ -348,7 +415,7 @@ body {
 }
 
 .shortcut-item {
-    background-color: rgba(26, 27, 38, 0.7);
+    background-color: var(--storm-alpha-70);
     border-radius: 12px; /* Increased radius for softer look */
     padding: 0;
     text-align: center;
@@ -369,14 +436,14 @@ body {
 
 /* Add a subtle glow effect around the icon on hover */
 .shortcut-item:hover .shortcut-icon {
-    background-color: rgba(187, 154, 247, 0.2);
-    box-shadow: 0 0 10px rgba(187, 154, 247, 0.4);
+    background-color: var(--purple-alpha-20);
+    box-shadow: 0 0 10px var(--purple-alpha-40);
 }
 
 /* Change name background on hover for better visibility */
 .shortcut-item:hover .shortcut-name {
-    background-color: rgba(41, 46, 66, 0.95);
-    color: #ffffff;
+    background-color: var(--surface-alpha-95);
+    color: var(--white);
 }
 
 /* In edit mode, make the hover effect less pronounced to avoid confusion with drag */
@@ -387,7 +454,7 @@ body.edit-mode .shortcut-item:hover {
 /* Special case for category shortcuts - make hover effect more subtle */
 .category-grid .shortcut-item:hover {
     transform: translateY(-1px);
-    background-color: rgba(41, 46, 66, 0.8);
+    background-color: var(--surface-alpha-80);
 }
 
 /* Make shortcuts even smaller when we have 2 rows */
@@ -504,12 +571,12 @@ body.edit-mode .shortcut-item:hover {
 }
 
 .shortcut-name {
-    color: #c0caf5;
+    color: var(--fg);
     font-size: 15px;
     font-weight: 500;
     word-break: break-word;
     text-align: center;
-    background-color: rgba(41, 46, 66, 0.85);
+    background-color: var(--surface-alpha-85);
     width: 100%; /* Make it full width of container */
     padding: 10px 5px; /* Add padding for better spacing */
     border-radius: 0 0 12px 12px; /* Round bottom corners to match parent */
@@ -531,7 +598,7 @@ body.edit-mode .shortcut-item:hover {
 }
 
 .shortcut-url {
-    color: #565f89;
+    color: var(--subtle);
     font-size: 12px;
     margin-top: 5px;
     word-break: break-word;
@@ -549,10 +616,10 @@ body.edit-mode .shortcut-item:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #bb9af7;
+    color: var(--purple);
     margin-bottom: 8px;
     /* margin-top: 5px;  */
-    background-color: rgba(187, 154, 247, 0.1);
+    background-color: var(--purple-alpha-10);
     border-radius: 10px;
     padding: 6px;
     position: relative;
@@ -570,7 +637,7 @@ body.edit-mode .shortcut-item:hover {
 .edit-shortcut {
     position: absolute;
     top: 10px;
-    color: rgba(86, 95, 137, 0.78);
+    color: var(--subtle-alpha-78); /* Assuming rgba(86, 95, 137, 0.78) is intended subtle */
     font-size: 14px;
     z-index: 3; /* Ensure it stays on top */
 }
@@ -607,7 +674,7 @@ body.edit-mode .shortcut-item:hover {
 
 /* Ensure categories have enough space to show content well */
 .category {
-    background-color: rgba(26, 27, 38, 0.3);
+    background-color: var(--storm-alpha-30);
     border-radius: 8px;
     padding-left: 10px;
     padding-right: 10px;
@@ -627,7 +694,7 @@ body.edit-mode .shortcut-item:hover {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 5px;
-    border-bottom: 1px solid rgba(122, 162, 247, 0.2);
+    border-bottom: 1px solid var(--blue-alpha-20);
     padding-bottom: 3px;
     flex-shrink: 0;
 }
@@ -652,8 +719,8 @@ body.edit-mode .shortcut-item:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(26, 27, 38, 0.4);
-    color: #565f89;
+    background-color: var(--storm-alpha-40);
+    color: var(--subtle);
     font-size: 10px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -661,13 +728,13 @@ body.edit-mode .shortcut-item:hover {
 }
 
 .category-action:hover {
-    background-color: rgba(41, 46, 66, 0.9);
-    color: #7aa2f7;
+    background-color: var(--surface-alpha-90);
+    color: var(--blue);
     transform: scale(1.1);
 }
 
 .category-title {
-    color: #bb9af7;
+    color: var(--purple);
     font-size: 16px;
     font-weight: 500;
     display: flex;
@@ -711,17 +778,17 @@ body.edit-mode .shortcut-item:hover {
 
 /* Styling for category grid scrollbar when visible */
 .category-grid::-webkit-scrollbar-track {
-    background-color: rgba(26, 27, 38, 0.3);
+    background-color: var(--storm-alpha-30);
     border-radius: 4px;
 }
 
 .category-grid::-webkit-scrollbar-thumb {
-    background-color: rgba(122, 162, 247, 0.3);
+    background-color: var(--blue-alpha-30);
     border-radius: 4px;
 }
 
 .category-grid::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(122, 162, 247, 0.5);
+    background-color: var(--blue-alpha-50);
 }
 
 /* ===== CATEGORY SHORTCUTS ===== */
@@ -746,7 +813,7 @@ body.edit-mode .shortcut-item:hover {
     border-radius: 5px; /* Smaller radius for category items */
     height: 100%;
     padding: 0 8px;
-    background-color: rgba(41, 46, 66, 0.7);
+    background-color: var(--surface-alpha-70);
     max-height: none; /* Allow normal height */
     margin-top: 0; /* Remove auto margin */
 }
@@ -769,8 +836,8 @@ body.edit-mode .shortcut-item:hover {
     left: 0;
     right: 0;
     font-size: 10px;
-    color: #7aa2f7;
-    background-color: rgba(15, 17, 37, 0.9);
+    color: var(--blue);
+    background-color: var(--storm-darker-alpha-90);
     padding: 2px 4px;
     border-radius: 2px;
     white-space: nowrap;
@@ -788,8 +855,8 @@ body.edit-mode .shortcut-item:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(26, 27, 38, 0.7);
-    color: #565f89;
+    background-color: var(--storm-alpha-70);
+    color: var(--subtle);
     font-size: 14px;
     cursor: pointer;
     transition: all 0.3s ease, opacity 0.5s ease;
@@ -829,8 +896,8 @@ body.edit-mode .shortcut-item:hover {
 .add-shortcut-btn:hover, 
 .tab2-settings-btn:hover, 
 .bg-config-btn:hover {
-    background-color: rgba(41, 46, 66, 0.9);
-    color: #7aa2f7;
+    background-color: var(--surface-alpha-90);
+    color: var(--blue);
     opacity: 1;
     transform: scale(1.1);
 }
@@ -840,7 +907,7 @@ body.edit-mode .shortcut-item:hover {
     position: absolute;
     bottom: 40px;
     right: 0;
-    background-color: rgba(26, 27, 38, 0.9);
+    background-color: var(--storm-alpha-90);
     border-radius: 5px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     width: 150px;
@@ -879,7 +946,7 @@ body.edit-mode .shortcut-item:hover {
 
 .add-option {
     padding: 10px 15px;
-    color: #c0caf5;
+    color: var(--fg);
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -894,20 +961,20 @@ body.edit-mode .shortcut-item:hover {
 .option-counter {
     margin-left: auto;
     font-size: 12px;
-    color: #565f89;
+    color: var(--subtle);
     padding: 2px 6px;
-    background-color: rgba(41, 46, 66, 0.5);
+    background-color: var(--surface-alpha-50); /* Using surface-alpha-50 as it's close */
     border-radius: 10px;
 }
 
 .add-option:hover {
-    background-color: rgba(41, 46, 66, 0.8);
-    color: #7aa2f7;
+    background-color: var(--surface-alpha-80);
+    color: var(--blue);
 }
 
 /* ===== FORMS STYLING ===== */
 .shortcut-form, .category-form, .settings-form {
-    background-color: rgba(26, 27, 38, 0.9);
+    background-color: var(--storm-alpha-90);
     border-radius: 10px;
     padding: 20px;
     width: 100%;
@@ -937,7 +1004,7 @@ body.edit-mode .shortcut-item:hover {
 }
 
 .shortcut-form h3, .category-form h3, .settings-form h3 {
-    color: #c0caf5;
+    color: var(--fg);
     margin-bottom: 15px;
     text-align: center;
 }
@@ -949,8 +1016,8 @@ body.edit-mode .shortcut-item:hover {
 
 .delete-btn {
     background-color: transparent;
-    border: 1px solid #f7768e;
-    color: #f7768e;
+    border: 1px solid var(--red);
+    color: var(--red);
     padding: 5px 10px;
     border-radius: 4px;
     cursor: pointer;
@@ -959,27 +1026,70 @@ body.edit-mode .shortcut-item:hover {
 }
 
 .delete-btn:hover {
-    background-color: rgba(247, 118, 142, 0.2);
+    background-color: var(--red-alpha-20);
 }
 
 .form-group {
     margin-bottom: 15px;
-    color: #c0caf5;
+    color: var(--fg);
 }
 
 .form-group input, #shortcut-category {
     width: 100%;
     padding: 10px;
     border-radius: 5px;
-    border: 1px solid #414868;
-    background-color: rgba(41, 46, 66, 0.6);
-    color: #c0caf5;
+    border: 1px solid var(--surface);
+    background-color: var(--surface-alpha-60);
+    color: var(--fg);
     font-size: 14px;
     outline: none;
+    
 }
 
 .form-group input:focus, #shortcut-category:focus {
-    border-color: #7aa2f7;
+    outline: none;
+    border-color: var(--blue);
+    box-shadow: 0 0 0 2px var(--blue-alpha-30);
+}
+
+/* Style for inline form groups (like color + apply button) */
+.form-group-inline {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.form-group-inline label {
+    flex-shrink: 0; /* Prevent label from shrinking */
+}
+
+.form-group-inline input[type="color"] {
+    flex-grow: 0; /* Don't let color input grow */
+    width: 50px; /* Give color input a fixed width */
+    height: 38px; /* Match button height */
+    padding: 2px; /* Adjust padding for color input */
+}
+
+.form-group-inline .btn-action {
+    flex-grow: 1; /* Allow button to take remaining space */
+    margin-left: auto; /* Push button to the right if needed, but flex-grow should handle it */
+}
+
+#custom-bg-color,#window-bg-color {
+    width: 50px;
+    outline: none;
+    padding: 5px;
+    border-radius: unset;
+}
+
+#custom-bg-color,#window-bg-color {
+    padding: 2px; /* Reduced padding for color inputs */
+    height: 38px; /* Match button height */
+    border: 1px solid var(--surface-darker);
+    background-color: var(--night-darker);
+    border-radius: 5px;
+    cursor: pointer;
+    width: 50px; /* Fixed width */
 }
 
 #shortcut-category {
@@ -1003,23 +1113,23 @@ body.edit-mode .shortcut-item:hover {
 }
 
 #save-shortcut, .settings-btn-action {
-    background-color: #7aa2f7;
-    color: #1a1b26;
+    background-color: var(--blue);
+    color: var(--storm);
 }
 
 #save-shortcut:hover, .settings-btn-action:hover {
-    background-color: #89b4ff;
+    background-color: var(--blue-light);
 }
 
 .btn-cancel {
     background-color: transparent;
-    border: 1px solid #414868;
-    color: #565f89;
+    border: 1px solid var(--surface);
+    color: var(--subtle);
 }
 
 .btn-cancel:hover {
-    background-color: rgba(41, 46, 66, 0.6);
-    color: #c0caf5;
+    background-color: var(--surface-alpha-60);
+    color: var(--fg);
 }
 
 /* ===== SETTINGS FORM ===== */
@@ -1031,18 +1141,18 @@ body.edit-mode .shortcut-item:hover {
 }
 
 #import-file {
-    background-color: rgba(41, 46, 66, 0.6);
-    color: #c0caf5;
+    background-color: var(--surface-alpha-60);
+    color: var(--fg);
     padding: 10px;
     width: 100%;
-    border: 1px solid #414868;
+    border: 1px solid var(--surface);
     border-radius: 5px;
     margin-top: 5px;
 }
 
 #import-file::-webkit-file-upload-button {
-    background-color: #414868;
-    color: #c0caf5;
+    background-color: var(--surface);
+    color: var(--fg);
     border: none;
     padding: 5px 10px;
     margin-right: 10px;
@@ -1068,17 +1178,17 @@ body.edit-mode .shortcut-item:hover {
 }
 
 .import-notification.success {
-    background-color: rgba(158, 206, 106, 0.2);
-    color: #9ece6a;
-    border: 1px solid #9ece6a;
+    background-color: var(--green-alpha-20);
+    color: var(--green);
+    border: 1px solid var(--green);
     height: 35px;
     opacity: 1;
 }
 
 .import-notification.error {
-    background-color: rgba(247, 118, 142, 0.2);
-    color: #f7768e;
-    border: 1px solid #f7768e;
+    background-color: var(--red-alpha-20);
+    color: var(--red);
+    border: 1px solid var(--red);
     height: 35px;
     opacity: 1;
 }
@@ -1087,11 +1197,11 @@ body.edit-mode .shortcut-item:hover {
 .api-help-text {
     font-size: 12px;
     margin-top: 5px;
-    color: #565f89;
+    color: var(--subtle);
 }
 
 .api-help-text a {
-    color: #7aa2f7;
+    color: var(--blue);
     text-decoration: none;
 }
 
@@ -1103,11 +1213,11 @@ body.edit-mode .shortcut-item:hover {
 .api-help-text {
     font-size: 12px;
     margin-top: 5px;
-    color: #565f89;
+    color: var(--subtle);
 }
 
 .api-help-text a {
-    color: #7aa2f7;
+    color: var(--blue);
     text-decoration: none;
 }
 
@@ -1128,7 +1238,7 @@ body.edit-mode .shortcut-item:hover {
 }
 
 .format-list i {
-    color: #9ece6a;
+    color: var(--green);
     margin-right: 5px;
 }
 
@@ -1141,7 +1251,7 @@ body.edit-mode .shortcut-item:hover {
 
 .todo-section, .notes-section {
     flex: 1;
-    background-color: rgba(26, 27, 38, 0.5);
+    background-color: var(--storm-alpha-50);
     border-radius: 8px;
     padding: 5px 20px 20px 20px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
@@ -1169,20 +1279,20 @@ body.edit-mode .shortcut-item:hover {
     flex: 1;
     padding: 10px;
     border-radius: 5px 0 0 5px;
-    border: 1px solid #414868;
-    background-color: rgba(41, 46, 66, 0.6);
-    color: #c0caf5;
+    border: 1px solid var(--surface);
+    background-color: var(--surface-alpha-60);
+    color: var(--fg);
     font-size: 14px;
     outline: none;
 }
 
 #todo-input:focus {
-    border-color: #7aa2f7;
+    border-color: var(--blue);
 }
 
 #add-todo-btn {
-    background-color: #7aa2f7;
-    color: #1a1b26;
+    background-color: var(--blue);
+    color: var(--storm);
     border-radius: 0 5px 5px 0;
 }
 
@@ -1205,12 +1315,12 @@ body.edit-mode .shortcut-item:hover {
     padding: 10px;
     border-radius: 5px;
     margin-bottom: 8px;
-    background-color: rgba(41, 46, 66, 0.4);
+    background-color: var(--surface-alpha-40);
     transition: all 0.2s ease;
 }
 
 .todo-item:hover {
-    background-color: rgba(41, 46, 66, 0.6);
+    background-color: var(--surface-alpha-60);
 }
 
 .todo-checkbox {
@@ -1220,11 +1330,11 @@ body.edit-mode .shortcut-item:hover {
 
 .todo-text {
     flex: 1;
-    color: #c0caf5;
+    color: var(--fg);
 }
 
 .todo-delete {
-    color: #f7768e;
+    color: var(--red);
     cursor: pointer;
     opacity: 0.5;
     transition: opacity 0.2s;
@@ -1236,7 +1346,7 @@ body.edit-mode .shortcut-item:hover {
 
 .todo-completed .todo-text {
     text-decoration: line-through;
-    color: #565f89;
+    color: var(--subtle);
 }
 
 /* Notes section styles */
@@ -1245,9 +1355,9 @@ body.edit-mode .shortcut-item:hover {
     height: 100%;
     padding: 15px;
     border-radius: 5px;
-    border: 1px solid #414868;
-    background-color: rgba(41, 46, 66, 0.6);
-    color: #c0caf5;
+    border: 1px solid var(--surface);
+    background-color: var(--surface-alpha-60);
+    color: var(--fg);
     font-size: 14px;
     line-height: 1.6;
     resize: none;
@@ -1257,7 +1367,7 @@ body.edit-mode .shortcut-item:hover {
 }
 
 #notes-area:focus {
-    border-color: #7aa2f7;
+    border-color: var(--blue);
 }
 
 /* Make sure notes area scrollbar is always visible */
@@ -1281,17 +1391,17 @@ body:not(.edit-mode) .category-actions {
 }
 
 body.edit-mode .add-shortcut-btn {
-    background-color: rgba(187, 154, 247, 0.7); /* Purple background in edit mode */
-    color: #ffffff;
+    background-color: var(--purple-alpha-70); /* Purple background in edit mode */
+    color: var(--white);
 }
 
 #toggle-edit-mode.active {
-    background-color: rgba(41, 46, 66, 0.8);
-    color: #bb9af7; /* Tokyo Night purple */
+    background-color: var(--surface-alpha-80); /* Changed from rgba(41, 46, 66, 0.8) */
+    color: var(--purple);
 }
 
 #toggle-edit-mode.active .fas {
-    color: #bb9af7;
+    color: var(--purple);
 }
 
 /* Fix for edit mode toggle functionality */
@@ -1312,18 +1422,19 @@ body.edit-mode .add-shortcut-btn {
     position: relative;
     z-index: 1002;
     transition: background-color 0.3s ease, color 0.3s ease;
+    color: var(--fg);
 }
 
 /* Improved active state for edit mode toggle */
 #toggle-edit-mode.active,
 body.edit-mode #toggle-edit-mode {
-    background-color: rgba(187, 154, 247, 0.2);
-    color: #bb9af7;
+    background-color: var(--purple-alpha-20);
+    color: var(--purple);
 }
 
 #toggle-edit-mode.active .fas,
 body.edit-mode #toggle-edit-mode .fas {
-    color: #bb9af7;
+    color: var(--purple);
 }
 
 /* Improved dropdown visibility */
@@ -1331,7 +1442,7 @@ body.edit-mode #toggle-edit-mode .fas {
     position: absolute;
     bottom: 40px;
     right: 0;
-    background-color: rgba(26, 27, 38, 0.9);
+    background-color: var(--storm-alpha-90);
     border-radius: 5px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     width: 150px;
@@ -1363,8 +1474,8 @@ body.edit-mode .edit-shortcut {
 
 /* More obvious feedback when in edit mode */
 body.edit-mode .add-shortcut-btn {
-    background-color: rgba(187, 154, 247, 0.8);
-    color: #ffffff;
+    background-color: var(--purple-alpha-80);
+    color: var(--white);
 }
 
 /* Enhanced edit mode toggle button */
@@ -1377,7 +1488,7 @@ body.edit-mode .add-shortcut-btn {
     font-size: inherit;
     font-family: inherit;
     padding: 10px 15px;
-    color: #c0caf5;
+    color: var(--fg);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1389,16 +1500,16 @@ body.edit-mode .add-shortcut-btn {
 
 #toggle-edit-mode:hover,
 #toggle-edit-mode:focus {
-    background-color: rgba(41, 46, 66, 0.8);
-    color: #7aa2f7;
+    background-color: var(--surface-alpha-80);
+    color: var(--blue);
     outline: none;
 }
 
 /* Better visual indication for edit mode */
 #toggle-edit-mode.active,
 body.edit-mode #toggle-edit-mode {
-    background-color: rgba(187, 154, 247, 0.2);
-    color: #bb9af7;
+    background-color: var(--purple-alpha-20);
+    color: var(--purple);
 }
 
 #toggle-edit-mode i {
@@ -1409,13 +1520,13 @@ body.edit-mode #toggle-edit-mode {
 /* Make edit buttons more obvious in edit mode */
 body.edit-mode .edit-shortcut {
     display: flex !important;
-    background-color: rgba(187, 154, 247, 0.2);
+    background-color: var(--purple-alpha-50);
     padding: 5px;
     border-radius: 50%;
 }
 
 body.edit-mode .edit-shortcut:hover {
-    background-color: rgba(187, 154, 247, 0.4);
+    background-color: var(--purple-alpha-80);
     transform: scale(1.1);
 }
 
@@ -1425,8 +1536,8 @@ body.edit-mode::after {
     position: fixed;
     bottom: 20px;
     right: 60px; /* Position to the left of the add button (which is at right: 20px) */
-    background-color: rgba(187, 154, 247, 0.7);
-    color: #fff;
+    background-color: var(--purple-alpha-70);
+    color: var(--white);
     padding: 5px 10px;
     border-radius: 15px;
     font-size: 12px;
@@ -1436,8 +1547,8 @@ body.edit-mode::after {
 
 /* Move edit instructions to appear between bottom of page and status bar */
 .edit-instructions {
-    background-color: rgba(26, 27, 38, 0.7);
-    color: #7aa2f7;
+    background-color: var(--storm-alpha-70);
+    color: var(--blue);
     padding: 8px 16px;
     border-radius: 20px;
     font-size: 14px;
@@ -1485,7 +1596,7 @@ body:not(.edit-mode) .edit-instructions {
 }
 
 .weather-section, .news-section {
-    background-color: rgba(26, 27, 38, 0.5);
+    background-color: var(--storm-alpha-50);
     border-radius: 8px;
     /* padding: 20px;  */
     padding: 5px 20px 20px 20px;
@@ -1532,7 +1643,7 @@ body:not(.edit-mode) .edit-instructions {
 
 .weather-icon {
     font-size: 48px;
-    color: #7aa2f7;
+    color: var(--blue);
 }
 
 .weather-icon img {
@@ -1542,7 +1653,7 @@ body:not(.edit-mode) .edit-instructions {
 
 .weather-temp {
     font-size: 48px;
-    color: #c0caf5;
+    color: var(--fg);
     font-weight: 300;
 }
 
@@ -1553,20 +1664,20 @@ body:not(.edit-mode) .edit-instructions {
 
 .weather-description {
     font-size: 18px;
-    color: #c0caf5;
+    color: var(--fg);
     margin-bottom: 5px;
     text-transform: capitalize;
 }
 
 .weather-location {
     font-size: 16px;
-    color: #565f89;
+    color: var(--subtle);
     margin-bottom: 10px;
 }
 
 .weather-feels-like {
     font-size: 14px;
-    color: #565f89;
+    color: var(--subtle);
 }
 
 .weather-metrics {
@@ -1580,13 +1691,13 @@ body:not(.edit-mode) .edit-instructions {
     display: flex;
     flex-direction: column;
     align-items: center;
-    color: #c0caf5;
+    color: var(--fg);
     gap: 5px;
 }
 
 .weather-metric i {
     font-size: 24px;
-    color: #7aa2f7;
+    color: var(--blue);
 }
 
 
@@ -1602,13 +1713,13 @@ body:not(.edit-mode) .edit-instructions {
 .news-articles-container {
     display: flex; /* Use flex for consistency */
     flex-direction: column;
-    gap: 15px;
+    gap: 5px;
     overflow-y: auto; /* Enable vertical scrolling */
     height: 100%; /* Take full height of parent */
     flex-grow: 1; /* Allow it to grow */
     padding-right: 5px; /* Space for scrollbar */
     scrollbar-width: thin; /* Firefox */
-    scrollbar-color: rgba(122, 162, 247, 0.3) rgba(26, 27, 38, 0.3); /* Firefox */
+    scrollbar-color: var(--blue-alpha-30) var(--storm-alpha-30); /* Firefox */
 }
 
 /* Make the feed container take up available height */
@@ -1623,65 +1734,77 @@ body:not(.edit-mode) .edit-instructions {
 /* News article styling */
 .news-article {
     display: flex;
-    background-color: rgba(26, 27, 38, 0.7);
-    /* border-radius: 8px; */
-    overflow: hidden;
+    align-items: center;
+    padding: 10px 12px;
+    /* margin-bottom: 8px; */
+    background-color: var(--storm-alpha-70);
+    border-radius: 6px;
     transition: all 0.3s ease;
-    text-decoration: none; /* Remove default link styling */
-    flex-shrink: 0; /* Prevent articles from shrinking */
+    text-decoration: none; /* Remove underline from link */
+    color: inherit; /* Inherit text color */
+    min-height: 70px; /* Ensure a minimum height */
 }
 .news-article:hover {
-    background-color: rgba(41, 46, 66, 0.9); /* Darker on hover */
-    transform: scale(1.01); /* Slightly enlarge on hover */
+    background-color: var(--storm-alpha-90);
+    transform:scale(1.005);
 }
 
-/* Remove height differences based on thumbnail */
-.news-article.has-thumbnail {
-}
-
-.news-article.no-thumbnail {
-    padding-left: 15px; /* Add padding on the left since there's no image */
+/* Add styles for the thumbnail image */
+.news-image {
+    width: 60px; /* Adjust size as needed */
+    height: 60px;
+    flex-shrink: 0;
+    margin-right: 12px;
+    border-radius: 4px;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--surface-alpha-50); /* Placeholder color */
 }
 
 .news-content {
-    padding: 12px 15px; /* Consistent padding */
+    /* 
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden; 
+    min-height: 70px; 
+ */
+    padding: 12px 15px;
     display: flex;
     flex-direction: column;
     flex: 1;
     overflow: hidden;
-    min-height: 70px; /* Ensure a minimum height */
+    min-height: 70px;
 }
 
 .news-title {
+    color: var(--fg);
     font-size: 14px;
     font-weight: 500;
-    color: #c0caf5;
-    margin-bottom: 5px; /* Add space below title */
+    margin-bottom: 5px;
     display: -webkit-box;
-    -webkit-line-clamp: 2; /* Limit to 2 lines */
-    -webkit-box-orient: vertical;
+    
+    
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1.3; /* Adjust line height */
+    line-height: 1.3;
 }
 
 .news-source {
-    font-size: 12px;
-    color: #7aa2f7;
-    margin-top: auto; /* Push source and date to bottom */
-    padding-top: 5px; /* Add space above source/date */
-    align-self: flex-start; /* Align to the start */
-    /* align-self: flex-end; */
-    /* transform: translate(0%, -150%); */
+    color: var(--blue-light);
+    font-size: 12px;    
+    margin-top: auto;
+    transform: translate(0%, 90%);
 }
 
 .news-date {
+    color: var(--subtle-lighter2);
     font-size: 11px;
-    color: #565f89;
-    margin-top: 2px; /* Space between source and date */
-    align-self: flex-start; /* Align to the start */
-    align-self: flex-end; /* Align to the end */
-    /* transform: translate(0%, -150%); */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    align-self: flex-end;
 }
 
 /* Ensure loading and error displays take full height too */
@@ -1696,7 +1819,7 @@ body:not(.edit-mode) .edit-instructions {
     height: 100%; /* Ensure they fill space */
     text-align: center;
     padding: 20px;
-    color: #bb9af7;
+    color: var(--purple);
 }
 
 .loading-indicator i,
@@ -1710,12 +1833,12 @@ body:not(.edit-mode) .edit-instructions {
 .todo-section h3, 
 .notes-section h3,
 .weather-section h3 {
-    color: #7aa2f7; /* Consistent heading color */
+    color: var(--blue);
     margin-bottom: 15px;
     font-size: 20px;
     flex-shrink: 0; /* Prevent headings from shrinking */
     padding-bottom: 5px; /* Add padding below heading */
-    border-bottom: 1px solid rgba(122, 162, 247, 0.1); /* Add separator */
+    border-bottom: 1px solid var(--blue-alpha-20); /* Add separator */
 }
 
 /* ===== TAB2 - WEATHER & RSS ===== */
@@ -1733,8 +1856,8 @@ body:not(.edit-mode) .edit-instructions {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(26, 27, 38, 0.7);
-    color: #565f89;
+    background-color: var(--storm-alpha-70);
+    color: var(--subtle);
     font-size: 14px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -1760,23 +1883,23 @@ body:not(.edit-mode) .edit-instructions {
 .settings-tabs {
     display: flex;
     margin-bottom: 20px;
-    border-bottom: 1px solid #414868;
+    border-bottom: 1px solid var(--surface);
 }
 
 .settings-tab {
     padding: 8px 15px;
     cursor: pointer;
-    color: #565f89;
+    color: var(--subtle);
     transition: all 0.3s ease;
 }
 
 .settings-tab:hover {
-    color: #7aa2f7;
+    color: var(--blue);
 }
 
 .settings-tab.active {
-    color: #bb9af7;
-    border-bottom: 2px solid #bb9af7;
+    color: var(--purple);
+    border-bottom: 2px solid var(--purple);
 }
 
 .settings-panel {
@@ -1792,7 +1915,7 @@ body:not(.edit-mode) .edit-instructions {
 }
 
 .location-separator {
-    color: #565f89;
+    color: var(--subtle);
 }
 
 /* RSS Feeds List */
@@ -1810,7 +1933,7 @@ body:not(.edit-mode) .edit-instructions {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: rgba(41, 46, 66, 0.6);
+    background-color: var(--surface-alpha-60);
     padding: 10px;
     border-radius: 5px;
     margin-bottom: 8px;
@@ -1822,13 +1945,13 @@ body:not(.edit-mode) .edit-instructions {
 }
 
 .feed-name {
-    color: #c0caf5;
+    color: var(--fg);
     font-size: 14px;
     margin-bottom: 3px;
 }
 
 .feed-url {
-    color: #565f89;
+    color: var(--subtle);
     font-size: 12px;
     word-break: break-all;
 }
@@ -1839,7 +1962,7 @@ body:not(.edit-mode) .edit-instructions {
 }
 
 .feed-action {
-    color: #565f89;
+    color: var(--subtle);
     cursor: pointer;
     font-size: 12px;
     padding: 3px;
@@ -1847,27 +1970,27 @@ body:not(.edit-mode) .edit-instructions {
 }
 
 .feed-action:hover {
-    color: #7aa2f7;
+    color: var(--blue);
 }
 
 .feed-action.delete:hover {
-    color: #f7768e;
+    color: var(--red);
 }
 
 /* Buttons */
 .mini-btn {
     padding: 5px 10px;
     font-size: 12px;
-    background-color: rgba(122, 162, 247, 0.2);
-    color: #7aa2f7;
-    border: 1px solid #414868;
+    background-color: var(--blue-alpha-20);
+    color: var(--blue);
+    border: 1px solid var(--surface);
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .mini-btn:hover {
-    background-color: rgba(122, 162, 247, 0.3);
+    background-color: var(--blue-alpha-30);
 }
 
 .add-btn {
@@ -1877,12 +2000,12 @@ body:not(.edit-mode) .edit-instructions {
 
 .cancel-btn {
     background-color: transparent;
-    color: #565f89;
+    color: var(--subtle);
 }
 
 .cancel-btn:hover {
-    background-color: rgba(41, 46, 66, 0.6);
-    color: #c0caf5;
+    background-color: var(--surface-alpha-60);
+    color: var(--fg);
 }
 
 /* Make sure both tab2 and tab3 share consistent styling */
@@ -1890,9 +2013,7 @@ body:not(.edit-mode) .edit-instructions {
 .todo-section h3, 
 .notes-section h3,
 .weather-section h3 {
-    /* color: #bb9af7; */
-    color: #616ca1;
-    color: #7aa2f7;
+    color: var(--blue);
     margin-bottom: 15px;
     font-size: 20px;
     flex-shrink: 0;
@@ -1989,7 +2110,7 @@ body.edit-mode .shortcut-item:hover::before {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(122, 162, 247, 0.05);
+    background-color: var(--blue-alpha-05);
     border-radius: 12px;
     pointer-events: none;
     z-index: 1;
@@ -2001,19 +2122,19 @@ body.dragging-shortcut .shortcut-item {
 
 .shortcut-item.drag-over {
     transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(187, 154, 247, 0.5);
-    border: 2px solid rgba(187, 154, 247, 0.5);
+    box-shadow: 0 0 15px var(--purple-alpha-50);
+    border: 2px solid var(--purple-alpha-50);
 }
 
 .drag-placeholder {
-    background-color: rgba(187, 154, 247, 0.2) !important;
-    border: 2px dashed #bb9af7 !important;
+    background-color: var(--purple-alpha-20) !important;
+    border: 2px dashed var(--purple) !important;
     box-shadow: none !important;
 }
 
 .edit-instructions {
-    background-color: rgba(26, 27, 38, 0.7);
-    color: #7aa2f7;
+    background-color: var(--storm-alpha-70);
+    color: var(--blue);
     padding: 8px 16px;
     border-radius: 20px;
     margin-top: 20px;
@@ -2062,8 +2183,8 @@ body.edit-mode .edit-shortcut {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(26, 27, 38, 0.7);
-    color: #565f89;
+    background-color: var(--storm-alpha-70);
+    color: var(--subtle);
     font-size: 14px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -2076,8 +2197,8 @@ body.edit-mode .edit-shortcut {
 }
 
 .bg-config-btn:hover {
-    background-color: rgba(41, 46, 66, 0.9);
-    color: #7aa2f7;
+    background-color: var(--surface-alpha-90);
+    color: var(--blue);
     opacity: 1;
     transform: scale(1.1);
 }
@@ -2088,10 +2209,12 @@ body.edit-mode .edit-shortcut {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    max-height: calc(100vh - 50px); 
+    overflow-y: auto; /* Ensure scrolling if content overflows */
 }
 
 .bg-selector-heading {
-    color: #c0caf5;
+    color: var(--fg);
     margin-bottom: 10px;
     font-size: 16px;
 }
@@ -2124,7 +2247,7 @@ body.edit-mode .edit-shortcut {
 }
 
 .bg-option.active {
-    border-color: #7aa2f7;
+    border-color: var(--blue);
 }
 
 .bg-check {
@@ -2134,8 +2257,8 @@ body.edit-mode .edit-shortcut {
     height: 20px;
     width: 20px;
     border-radius: 50%;
-    background-color: #7aa2f7;
-    color: #1a1b26;
+    background-color: var(--blue);
+    color: var(--storm);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2151,86 +2274,139 @@ body.edit-mode .edit-shortcut {
 .custom-bg-section {
     margin-top: 15px;
     padding-top: 15px;
-    border-top: 1px solid #414868;
+    border-top: 1px solid var(--surface);
 }
 
 /* Blur adjustment section styles */
 .blur-adjustment-section {
     margin-top: 15px;
     padding-top: 15px;
-    border-top: 1px solid #414868;
+    border-top: 1px solid var(--surface);
 }
 
-.blur-slider {
+/* Window Background Section Styles */
+.window-background-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--surface-darker);
+}
+
+.window-background-section h4,.blur-adjustment-section h4 {
+    margin-bottom: 15px;
+    color: var(--fg);
+    font-weight: 500;
+}
+
+.window-background-section .form-group {
+    margin-bottom: 15px; /* Consistent spacing */
+}
+
+.window-background-section .form-group:last-child {
+    margin-bottom: 0; /* Remove margin from last group */
+}
+
+.window-background-section .setting-description {
+    font-size: 13px;
+    color: var(--subtle-lighter2);
+    margin-top: 5px;
+    margin-bottom: 15px; /* Add margin below description */
+}
+
+/* Generic slider styles (apply to blur and opacity sliders) */
+.blur-slider,
+.opacity-slider {
     width: 100%;
-    height: 5px;
+    cursor: pointer;
+    height: 8px;
+    background: var(--surface-alpha-50); /* Track color */
+    border-radius: 4px;
+    appearance: none; /* Override default look */
     -webkit-appearance: none;
-    background: rgba(41, 46, 66, 0.6);
-    border-radius: 5px;
-    outline: none;
-    margin: 10px 0;
+    margin-top: 5px;
 }
 
-.blur-slider::-webkit-slider-thumb {
+/* Webkit (Chrome, Safari) thumb styles */
+.blur-slider::-webkit-slider-thumb,
+.opacity-slider::-webkit-slider-thumb {
+    appearance: none;
     -webkit-appearance: none;
-    width: 15px;
-    height: 15px;
+    width: 16px;
+    height: 16px;
+    background: var(--purple); /* Thumb color */
     border-radius: 50%;
-    background: #7aa2f7;
     cursor: pointer;
+    transition: background 0.2s ease;
 }
 
-.blur-slider::-moz-range-thumb {
-    width: 15px;
-    height: 15px;
+.blur-slider::-webkit-slider-thumb:hover,
+.opacity-slider::-webkit-slider-thumb:hover {
+    background: var(--blue); /* Thumb hover color */
+}
+
+/* Mozilla (Firefox) thumb styles */
+.blur-slider::-moz-range-thumb,
+.opacity-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--purple); /* Thumb color */
     border-radius: 50%;
-    background: #7aa2f7;
-    cursor: pointer;
     border: none;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.blur-slider::-moz-range-thumb:hover,
+.opacity-slider::-moz-range-thumb:hover {
+    background: var(--blue); /* Thumb hover color */
+}
+
+/* Mozilla (Firefox) track styles */
+.blur-slider::-moz-range-track,
+.opacity-slider::-moz-range-track {
+    width: 100%;
+    height: 8px;
+    background: var(--surface-alpha-50); /* Track color */
+    border-radius: 4px;
+    cursor: pointer;
 }
 
 #blur-value {
-    color: #7aa2f7;
+    color: var(--blue);
     font-weight: 500;
-}
-#custom-bg-color {
-    width: 50px;
-    padding: 5px;
-    border-radius: unset;
 }
 
 /* Reset configuration section styles */
 .reset-section {
     margin-top: 25px;
     padding-top: 20px;
-    border-top: 1px solid #414868;
+    border-top: 1px solid var(--surface);
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 
 .reset-section h4 {
-    color: #f7768e;
+    color: var(--red);
     font-size: 16px;
     margin: 0;
 }
 
 .reset-description {
-    color: #565f89;
+    color: var(--subtle);
     font-size: 12px;
     margin: 0;
     line-height: 1.5;
 }
 
 .btn-danger {
-    background-color: rgba(247, 118, 142, 0.2);
-    color: #f7768e;
-    border: 1px solid #f7768e;
+    background-color: var(--red-alpha-20);
+    color: var(--red);
+    border: 1px solid var(--red);
     align-self: flex-start;
 }
 
 .btn-danger:hover {
-    background-color: rgba(247, 118, 142, 0.4);
+    background-color: var(--red-alpha-40); /* Assuming 0.4 alpha */
 }
 
 /* Tab1 Settings Button */
@@ -2241,8 +2417,8 @@ body.edit-mode .edit-shortcut {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(26, 27, 38, 0.7);
-    color: #565f89;
+    background-color: var(--storm-alpha-70);
+    color: var(--subtle);
     font-size: 14px;
     cursor: pointer;
     transition: all 0.3s ease, opacity 0.5s ease;
@@ -2261,8 +2437,8 @@ body.edit-mode .edit-shortcut {
 }
 
 .tab1-settings-btn:hover {
-    background-color: rgba(41, 46, 66, 0.9);
-    color: #7aa2f7;
+    background-color: var(--surface-alpha-90);
+    color: var(--blue);
     opacity: 1;
     transform: scale(1.1);
 }
@@ -2281,7 +2457,7 @@ body.edit-mode .edit-shortcut {
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
-    color: #c0caf5;
+    color: var(--fg);
 }
 
 .toggle-switch {
@@ -2305,10 +2481,10 @@ body.edit-mode .edit-shortcut {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(41, 46, 66, 0.8);
+    background-color: var(--surface-alpha-80); /* Changed from rgba(41, 46, 66, 0.8) */
     transition: .4s;
     border-radius: 24px;
-    border: 1px solid #414868;
+    border: 1px solid var(--surface);
 }
 
 .toggle-slider:before {
@@ -2318,18 +2494,18 @@ body.edit-mode .edit-shortcut {
     width: 16px;
     left: 4px;
     bottom: 3px;
-    background-color: #565f89;
+    background-color: var(--subtle);
     transition: .4s;
     border-radius: 50%;
 }
 
 input:checked + .toggle-slider {
-    background-color: rgba(122, 162, 247, 0.2);
+    background-color: var(--blue-alpha-20);
 }
 
 input:checked + .toggle-slider:before {
     transform: translateX(26px);
-    background-color: #7aa2f7;
+    background-color: var(--blue);
 }
 
 /* Hide tabs based on settings */
@@ -2347,16 +2523,16 @@ input:checked + .toggle-slider:before {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #c0caf5;
+    color: var(--fg);
     cursor: pointer;
     padding: 8px 12px;
     border-radius: 6px;
     transition: all 0.2s ease;
-    background-color: rgba(41, 46, 66, 0.4);
+    background-color: var(--surface-alpha-40);
 }
 
 .unit-selector label:hover {
-    background-color: rgba(41, 46, 66, 0.6);
+    background-color: var(--surface-alpha-60);
 }
 
 .unit-selector input[type="radio"] {
@@ -2365,16 +2541,16 @@ input:checked + .toggle-slider:before {
     appearance: none;
     width: 18px;
     height: 18px;
-    border: 2px solid #414868;
+    border: 2px solid var(--surface);
     border-radius: 50%;
     outline: none;
     transition: all 0.2s ease;
     position: relative;
-    background-color: rgba(26, 27, 38, 0.5);
+    background-color: var(--storm-alpha-50);
 }
 
 .unit-selector input[type="radio"]:checked {
-    border-color: #7aa2f7;
+    border-color: var(--blue);
 }
 
 .unit-selector input[type="radio"]:checked::before {
@@ -2386,9 +2562,41 @@ input:checked + .toggle-slider:before {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background-color: #7aa2f7;
+    background-color: var(--blue);
 }
-
-.unit-selector input[type="radio"]:checked + span {
-    color: #7aa2f7;
+@media (max-width: 1700px) {
+    .container {
+        scale: 0.95;
+    }
+}
+@media (max-width: 1600px) {
+    .container {
+        scale: 0.90;
+    }
+}
+@media (max-width: 1400px) {
+    .container {
+        scale: 0.85;
+    }
+}
+@media (max-width: 1200px) {
+    .container {
+        scale: 0.80;
+    }
+}
+@media (max-width: 1000px) {
+    .container {
+        scale: 0.80;
+    }
+    .main-window,.status-bar {
+        width: 1000px;
+    }
+}
+@media (max-width: 900px) {
+    .container {
+        scale: 0.70;
+    }
+    .main-window,.status-bar {
+        width: 1000px;
+    }
 }

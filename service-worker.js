@@ -1,5 +1,5 @@
 // Cache name with version - update this to force cache refresh when making significant changes
-const CACHE_NAME = 'dmx-tab-cache-v1.1';
+const CACHE_NAME = 'dmx-tab-cache-v1.0.4'; // Increment version to force update
 
 // App Shell - essential files that make the app work offline
 const APP_SHELL = [
@@ -55,24 +55,22 @@ self.addEventListener('install', event => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', event => {
-  console.log('[Service Worker] Activating...');
-  
+  console.log('[Service Worker] Activate event');
   event.waitUntil(
-    caches.keys()
-      .then(cacheNames => {
-        return Promise.all(
-          cacheNames.filter(cacheName => {
-            return cacheName.startsWith('dmx-tab-cache-') && cacheName !== CACHE_NAME;
-          }).map(cacheName => {
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          // Delete old caches (including the old favicon cache if it exists)
+          if (cacheName !== CACHE_NAME) { // Keep only the current core asset cache
             console.log('[Service Worker] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
-          })
-        );
-      })
-      .then(() => {
-        console.log('[Service Worker] Now ready to handle fetches!');
-        return self.clients.claim(); // Take control of all clients under service worker scope
-      })
+          }
+        })
+      );
+    }).then(() => {
+      console.log('[Service Worker] Activated and old caches cleaned');
+      return self.clients.claim(); // Take control of uncontrolled clients
+    })
   );
 });
 
@@ -86,11 +84,6 @@ self.addEventListener('fetch', event => {
       event.request.url.includes('allorigins.win') ||
       event.request.url.includes('jsonp.io')) {
     return; // Don't handle - let browser handle as usual
-  }
-  
-  // Skip Google Favicon requests - don't cache but don't fail
-  if (event.request.url.includes('google.com/s2/favicons')) {
-    return; // Let browser handle normally
   }
   
   // HTML and App Shell resources use a Network-First strategy for freshness

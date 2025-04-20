@@ -82,6 +82,7 @@ if ('serviceWorker' in navigator) {
       
       const body = document.body;
       const statusBar = document.querySelector('.status-bar');
+      const mainWindowElement = document.querySelector('.main-window'); // Added for direct style access
       
       // Updated UI elements
       const addWebsiteOption = document.getElementById('add-website-option');
@@ -107,7 +108,11 @@ if ('serviceWorker' in navigator) {
           'dmx-overlay-color',
           'dmx-overlay-opacity',
           'dmx-tab-visibility', // Added key for tab visibility settings
-          'dmx-weather-units' // Added key for weather units
+          'dmx-weather-units', // Added key for weather units
+          'dmx-disable-shadow', // Added key for shadow setting
+          'dmx-window-bg-color', // Added key for window background color
+          'dmx-window-bg-opacity' // Added key for window background opacity
+          // Note: Favicon cache uses dynamic keys like 'dmx-favicon-cache-<domain>'
       ];
       
       // Tab2 Settings variables
@@ -159,7 +164,7 @@ if ('serviceWorker' in navigator) {
       const applyCustomBgBtn = document.getElementById('apply-custom-bg');
       const blurSlider = document.getElementById('blur-slider');
       const blurValue = document.getElementById('blur-value');
-      const resetBlurBtn = document.getElementById('reset-blur');
+      const resetBackgroundSettingsBtn = document.getElementById('resetBackgroundSettingsBtn');
       const sharpBordersToggle = document.getElementById('sharp-borders-toggle'); // Added
       const customBgColorInput = document.getElementById('custom-bg-color'); // Added
       const applyCustomColorBtn = document.getElementById('apply-custom-color'); // Added
@@ -167,6 +172,11 @@ if ('serviceWorker' in navigator) {
       const customColorOpacitySlider = document.getElementById('custom-color-opacity-slider'); // Added
       const customColorOpacityValue = document.getElementById('custom-color-opacity-value'); // Added
       const overlayOpacitySection = document.querySelector('.overlay-opacity-section'); // Added to show/hide slider
+      const disableShadowToggle = document.getElementById('disable-shadow-toggle'); // Added
+      const windowBgColorInput = document.getElementById('window-bg-color'); // Added
+      const windowBgOpacitySlider = document.getElementById('window-bg-opacity-slider'); // Added
+      const windowBgOpacityValue = document.getElementById('window-bg-opacity-value'); // Added
+      const applyWindowBgBtn = document.getElementById('apply-window-bg'); // Added: New apply button
       
       // ========== FUNCTION DECLARATIONS ==========
       // Function to switch tabs with slide animation
@@ -516,23 +526,28 @@ if ('serviceWorker' in navigator) {
           const iconElement = document.createElement('div');
           iconElement.className = 'shortcut-icon';
           
-          // Try to get the website's favicon
-          const favicon = getFaviconUrl(shortcut.url);
-          if (favicon) {
-              const img = document.createElement('img');
-              img.src = favicon;
-              img.alt = shortcut.name;
-              img.onerror = function() {
-                  // If the favicon fails to load, fall back to the default icon
-                  this.parentNode.innerHTML = '<i class="fas fa-globe"></i>';
-              };
-              iconElement.appendChild(img);
-          } else {
-              iconElement.innerHTML = '<i class="fas fa-globe"></i>';
+          // Create image with loading placeholder
+          const iconImg = document.createElement('img');
+          
+          // Add a placeholder icon while loading
+          iconImg.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZjciIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCI+PC9jaXJjbGU+PC9zdmc+';
+          
+          // Get the favicon URL (check cache first, then Google service)
+          const domain = extractDomain(shortcut.url);
+          if (domain) {
+              shortcutElement.dataset.domain = domain; // Set data attribute here
+              getFaviconUrl(domain, (faviconUrl) => {
+                  if (faviconUrl) {
+                      iconImg.src = faviconUrl; // Set src directly to cached data URL or fetched URL
+                  }
+                  // If faviconUrl is null (error fetching/converting), the placeholder remains
+              });
           }
           
+          iconElement.appendChild(iconImg);
+          
           const nameElement = document.createElement('div');
-          nameElement.className = 'shortcut-name';
+          nameElement.className = 'shortcut-name sharp';
           nameElement.textContent = shortcut.name;
           
           // Add icon and name to the link
@@ -567,13 +582,78 @@ if ('serviceWorker' in navigator) {
           }
       }
       
-      // Helper function to get favicon URL for a website
-      function getFaviconUrl(url) {
-          const domain = extractDomain(url);
-          if (!domain) return null;
-          
-          // Use Google's favicon service for higher quality icons
-          return `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+      // Helper function to get favicon URL for a website - with localStorage caching
+      function getFaviconUrl(domain, callback) {
+          if (!domain) {
+              console.error("[Favicon] getFaviconUrl called with no domain."); // Added log
+              callback('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZjciIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCI+PC9jaXJjbGU+PC9zdmc+'); // Default icon on error
+              return;
+          }
+
+          const cacheKey = `dmx-favicon-cache-${domain}`;
+          const cachedFavicon = localStorage.getItem(cacheKey);
+
+          if (cachedFavicon) {
+              console.log(`[Favicon] Cache hit for ${domain}`); // Added log
+              callback(cachedFavicon);
+              return;
+          }
+          console.log(`[Favicon] Cache miss for ${domain}. Fetching via proxy...`); // Updated log
+
+          // Use allorigins proxy to bypass CORS
+          const googleFaviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+          // Use the /raw endpoint which might return the image directly
+          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(googleFaviconUrl)}`;
+          console.log(`[Favicon] Requesting proxied URL: ${proxyUrl}`); // Added log
+
+          fetch(proxyUrl) // Fetch via the proxy
+              .then(response => {
+                  if (!response.ok) {
+                      // Log the status text from the proxy response
+                      throw new Error(`[Favicon] Proxy response was not ok for ${domain}: ${response.status} ${response.statusText}`);
+                  }
+                  // Check content type - might be useful for debugging
+                  console.log(`[Favicon] Proxy response Content-Type for ${domain}: ${response.headers.get('Content-Type')}`);
+                  return response.blob();
+              })
+              .then(blob => {
+                  // Check if the blob is valid image data (basic check)
+                  if (!blob || blob.size === 0 || !blob.type.startsWith('image/')) {
+                      console.warn(`[Favicon] Received invalid blob for ${domain}. Type: ${blob?.type}, Size: ${blob?.size}`);
+                      throw new Error(`Invalid blob received for ${domain}`);
+                  }
+
+                  // Use FileReader to convert blob to base64 data URL
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                      const base64data = reader.result;
+                      console.log(`[Favicon] Fetched and caching for ${domain}`); // Added log
+                      try {
+                          // Check if base64 data looks reasonable before saving
+                          if (base64data && base64data.startsWith('data:image')) {
+                              localStorage.setItem(cacheKey, base64data);
+                              callback(base64data);
+                          } else {
+                              console.warn(`[Favicon] Invalid base64 data received for ${domain}, not caching.`);
+                              throw new Error(`Invalid base64 data received for ${domain}`);
+                          }
+                      } catch (e) {
+                          console.error(`[Favicon] Error saving to localStorage for ${domain}:`, e);
+                          // Fallback to default icon if storage fails or data is invalid
+                           callback('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZjciIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCI+PC9jaXJjbGU+PC9zdmc+');
+                      }
+                  };
+                  reader.onerror = (error) => { // Handle FileReader errors
+                      console.error(`[Favicon] FileReader error for ${domain}:`, error);
+                      callback('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZjciIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCI+PC9jaXJjbGU+PC9zdmc+');
+                  };
+                  reader.readAsDataURL(blob);
+              })
+              .catch(error => {
+                  console.error(`[Favicon] Error fetching proxied favicon for ${domain}:`, error);
+                  // Fallback to default icon on fetch error
+                  callback('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZjciIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCI+PC9jaXJjbGU+PC9zdmc+');
+              });
       }
       
       // Configure an existing shortcut
@@ -635,6 +715,11 @@ if ('serviceWorker' in navigator) {
           shortcuts.splice(index, 1);
           saveShortcuts(shortcuts);
           loadShortcuts();
+          // Also close the form if it was open for editing the deleted shortcut
+          if (editingShortcutIndex === index) {
+             shortcutForm.classList.remove('active');
+             editingShortcutIndex = null;
+          }
       }
       
       // Toggle shortcut form for adding new shortcut
@@ -837,13 +922,32 @@ if ('serviceWorker' in navigator) {
           const todos = JSON.parse(localStorage.getItem('dmx-todos')) || [];
           const weatherSettings = JSON.parse(localStorage.getItem('dmx-weather-settings')) || {};
           const rssFeeds = JSON.parse(localStorage.getItem('dmx-rss-feeds')) || [];
+          const background = localStorage.getItem('dmx-background');
+          const blur = localStorage.getItem('dmx-blur');
+          const sharpBorders = localStorage.getItem('dmx-sharp-borders');
+          const overlayColor = localStorage.getItem('dmx-overlay-color');
+          const overlayOpacity = localStorage.getItem('dmx-overlay-opacity');
+          const tabVisibility = JSON.parse(localStorage.getItem('dmx-tab-visibility')) || {};
+          const disableShadow = localStorage.getItem('dmx-disable-shadow'); // Added
+          const windowBgColor = localStorage.getItem('dmx-window-bg-color'); // Added
+          const windowBgOpacity = localStorage.getItem('dmx-window-bg-opacity'); // Added
           
           const settings = {
               shortcuts: shortcuts,
               notes: notes,
               todos: todos,
               weatherSettings: weatherSettings,
-              rssFeeds: rssFeeds
+              rssFeeds: rssFeeds,
+              background: background, // Include background settings
+              blur: blur,
+              sharpBorders: sharpBorders,
+              overlayColor: overlayColor,
+              overlayOpacity: overlayOpacity,
+              tabVisibility: tabVisibility,
+              disableShadow: disableShadow, // Added
+              windowBgColor: windowBgColor, // Added
+              windowBgOpacity: windowBgOpacity // Added
+              // Favicon cache is NOT exported intentionally, it will rebuild
           };
           
           const dataStr = JSON.stringify(settings, null, 2);
@@ -868,77 +972,78 @@ if ('serviceWorker' in navigator) {
           const reader = new FileReader();
           reader.onload = function(e) {
               try {
-                  const settings = JSON.parse(e.target.result);
-                  
+                  const importedSettings = JSON.parse(e.target.result);
+      
+                  // Clear existing favicon cache before importing other settings
+                  clearFaviconCache();
+      
                   // Import shortcuts
-                  if (settings.shortcuts) {
-                      localStorage.setItem('dmx-shortcuts', JSON.stringify(settings.shortcuts));
+                  if (importedSettings.shortcuts && Array.isArray(importedSettings.shortcuts)) {
+                      // Basic validation for shortcut structure
+                      const validShortcuts = importedSettings.shortcuts.filter(s => s && typeof s.name === 'string' && typeof s.url === 'string');
+                      localStorage.setItem('dmx-shortcuts', JSON.stringify(validShortcuts));
+                      loadShortcuts(); // Reload UI
+                  } else {
+                      localStorage.removeItem('dmx-shortcuts'); // Clear if invalid/missing
+                      loadShortcuts();
                   }
-                  
+      
                   // Import notes
-                  if (settings.notes) {
-                      localStorage.setItem('dmx-notes', settings.notes);
+                  if (importedSettings.notes) {
+                      localStorage.setItem('dmx-notes', importedSettings.notes);
                   }
                   
                   // Import todos
-                  if (settings.todos) {
-                      localStorage.setItem('dmx-todos', JSON.stringify(settings.todos));
+                  if (importedSettings.todos) {
+                      localStorage.setItem('dmx-todos', JSON.stringify(importedSettings.todos));
                   }
                   
                   // Import weather settings (including units)
-                  if (settings.weatherSettings) {
-                      localStorage.setItem('dmx-weather-settings', JSON.stringify(settings.weatherSettings));
-                      if (settings.weatherSettings.units) {
-                          localStorage.setItem('dmx-weather-units', settings.weatherSettings.units);
+                  if (importedSettings.weatherSettings) {
+                      localStorage.setItem('dmx-weather-settings', JSON.stringify(importedSettings.weatherSettings));
+                      if (importedSettings.weatherSettings.units) {
+                          localStorage.setItem('dmx-weather-units', importedSettings.weatherSettings.units);
                       }
                   }
                   
                   // Import RSS feeds
-                  if (settings.rssFeeds) {
-                      localStorage.setItem('dmx-rss-feeds', JSON.stringify(settings.rssFeeds));
+                  if (importedSettings.rssFeeds) {
+                      localStorage.setItem('dmx-rss-feeds', JSON.stringify(importedSettings.rssFeeds));
                   }
                   
                   // Import background settings (optional, might be in older exports)
-                  if (settings.background) localStorage.setItem('dmx-background', settings.background);
-                  if (settings.blur) localStorage.setItem('dmx-blur', settings.blur);
-                  if (settings.sharpBorders) localStorage.setItem('dmx-sharp-borders', settings.sharpBorders);
-                  if (settings.overlayColor) localStorage.setItem('dmx-overlay-color', settings.overlayColor);
-                  if (settings.overlayOpacity) localStorage.setItem('dmx-overlay-opacity', settings.overlayOpacity);
+                  if (importedSettings.background) localStorage.setItem('dmx-background', importedSettings.background);
+                  if (importedSettings.blur) localStorage.setItem('dmx-blur', importedSettings.blur);
+                  if (importedSettings.sharpBorders) localStorage.setItem('dmx-sharp-borders', importedSettings.sharpBorders);
+                  if (importedSettings.overlayColor) localStorage.setItem('dmx-overlay-color', importedSettings.overlayColor);
+                  if (importedSettings.overlayOpacity) localStorage.setItem('dmx-overlay-opacity', importedSettings.overlayOpacity);
+                  if (importedSettings.disableShadow) localStorage.setItem('dmx-disable-shadow', importedSettings.disableShadow); // Added
+                  if (importedSettings.windowBgColor) localStorage.setItem('dmx-window-bg-color', importedSettings.windowBgColor); // Added
+                  if (importedSettings.windowBgOpacity) localStorage.setItem('dmx-window-bg-opacity', importedSettings.windowBgOpacity); // Added
                   
                   // Import tab visibility settings (optional)
-                  if (settings.tabVisibility) localStorage.setItem('dmx-tab-visibility', JSON.stringify(settings.tabVisibility));
+                  if (importedSettings.tabVisibility) localStorage.setItem('dmx-tab-visibility', JSON.stringify(importedSettings.tabVisibility));
                   
-                  // Load saved data
+                  // Reload all relevant parts of the UI
                   loadShortcuts();
                   loadNotes();
                   loadTodoItems();
-                  applyBackgroundSettings(); // Apply imported background/blur/overlay/borders
-                  applyTabVisibility(); // Apply imported tab visibility
-                  
-                  // Reload weather and RSS data if we're on Tab2
-                  if (currentTabIndex === 1) {
-                      loadWeatherData();
-                      loadRssFeeds();
-                  }
-                  
+                  loadTab2Settings(); // Includes loading RSS feeds list
+                  applyAllBackgroundSettings(); // Reload background, blur, etc.
+                  initTabVisibility(); // Reload tab visibility
+                  loadWeatherData(); // Reload weather
+                  loadRssData(); // Reload RSS
+      
                   showImportNotification('Settings imported successfully!', 'success');
+                  settingsForm.classList.remove('active'); // Close form on success
+      
               } catch (error) {
-                  showImportNotification('Error importing settings: ' + error.message, 'error');
+                  console.error('Error parsing or applying imported settings:', error);
+                  showImportNotification('Error importing settings. Invalid file format.', 'error');
               }
           };
           reader.readAsText(file);
       });
-      
-      // Function to show import notification
-      function showImportNotification(message, type) {
-          importNotification.textContent = message;
-          importNotification.className = 'import-notification ' + type;
-          
-          // Auto hide after 5 seconds
-          setTimeout(() => {
-              importNotification.className = 'import-notification';
-          }, 5000);
-      }
       
       // Add reset configuration functionality
       const resetConfigBtn = document.getElementById('reset-config-btn');
@@ -946,21 +1051,33 @@ if ('serviceWorker' in navigator) {
           resetConfigBtn.addEventListener('click', () => {
               // Show a confirmation dialog
               if (confirm('Are you sure you want to reset all configuration? This will delete all shortcuts, notes, todos, and settings. This action cannot be undone.')) {
-                  
-                  // Remove each key from localStorage using the consolidated list
-                  APP_LOCAL_STORAGE_KEYS.forEach(key => localStorage.removeItem(key));
-                  
-                  // Show success message
-                  showImportNotification('All settings have been reset. Reloading...', 'success');
-                  
-                  // Reload the page after a short delay
-                  setTimeout(() => {
-                      window.location.reload();
-                  }, 1500);
+                  // Clear all known localStorage keys
+                  APP_LOCAL_STORAGE_KEYS.forEach(key => {
+                      localStorage.removeItem(key);
+                      console.log(`Removed ${key} from localStorage.`);
+                  });
+      
+                  // Clear dynamic favicon cache
+                  clearFaviconCache();
+      
+                  // Reload the page to apply default settings
+                  window.location.reload();
               }
           });
       }
 
+      // Function to clear all favicon cache entries from localStorage
+      function clearFaviconCache() {
+          console.log("[Favicon] Clearing favicon cache...");
+          Object.keys(localStorage).forEach(key => {
+              if (key.startsWith('dmx-favicon-cache-')) {
+                  localStorage.removeItem(key);
+                  // console.log(`Removed ${key} from localStorage.`);
+              }
+          });
+          console.log("[Favicon] Favicon cache cleared.");
+      }
+      
       // Function to update the dropdown counters
       function updateDropdownCounters() {
           const shortcuts = JSON.parse(localStorage.getItem('dmx-shortcuts')) || [];
@@ -1341,6 +1458,22 @@ if ('serviceWorker' in navigator) {
               });
       }
       
+      // Function to update weather icon safely without innerHTML
+      function updateWeatherIcon(container, iconUrl, altText) {
+          // Clear previous content safely
+          while (container.firstChild) {
+              container.removeChild(container.firstChild);
+          }
+          
+          // Create new img element
+          const img = document.createElement('img');
+          img.src = iconUrl;
+          img.alt = altText || 'Weather icon';
+          
+          // Append to container
+          container.appendChild(img);
+      }
+      
       // Display weather data (updated to handle WeatherAPI.com responses)
       function displayWeatherData(data) {
           const weatherLoading = document.getElementById('weather-loading');
@@ -1381,10 +1514,10 @@ if ('serviceWorker' in navigator) {
               document.getElementById('weather-wind').textContent = `${windSpeed} ${windUnit}`;
               document.getElementById('weather-humidity').textContent = `${current.humidity}%`;
               
-              // Set weather icon directly from WeatherAPI.com
+              // Set weather icon using our safe function instead of innerHTML
               const iconUrl = `https:${current.condition.icon}`;
               const iconElement = document.querySelector('.weather-icon');
-              iconElement.innerHTML = `<img src="${iconUrl}" alt="${current.condition.text}">`;
+              updateWeatherIcon(iconElement, iconUrl, current.condition.text);
               
               // Show content, hide loading and error
               weatherLoading.style.display = 'none';
@@ -1399,416 +1532,419 @@ if ('serviceWorker' in navigator) {
           }
       }
       
-      // RSS Data Function with improved Google News handling
+      // RSS Data Function with Stale-While-Revalidate Caching
       function loadRssData() {
           const rssLoading = document.getElementById('rss-loading');
           const rssError = document.getElementById('rss-error');
           const rssContent = document.getElementById('rss-content');
-          
-          // Reset display states
-          rssLoading.style.display = 'block';
-          rssError.style.display = 'none';
-          rssContent.innerHTML = ''; // Clear previous content
-          
-          // Get feeds from settings
+          const cacheDuration = 3600000; // 1 hour in milliseconds
           const feeds = JSON.parse(localStorage.getItem('dmx-rss-feeds')) || [];
-          
+          const now = Date.now();
+
+          let allItemsFromCache = [];
+          let feedsToFetch = [];
+          let initialDisplayDone = false;
+          let cacheStatus = {}; // Store cache validity for each feed URL
+
+          // --- Phase 1: Load from Cache & Identify Feeds to Fetch ---
+          rssLoading.style.display = 'block'; // Show loading initially
+          rssError.style.display = 'none';
+          // Don't clear rssContent here, wait until we decide if we show cache
+
           if (feeds.length === 0) {
               rssLoading.style.display = 'none';
-              rssError.style.display = 'block';
-              rssError.textContent = 'No feeds configured. Click the settings button to add feeds.';
-              rssDataLoaded = true; // Mark as loaded even with no feeds
+              rssContent.innerHTML = '<div id="rss-error" class="error-message" style="display: block;" >No feeds configured. Click the settings button to add feeds.</div>';
+              rssDataLoaded = true;
               return;
           }
-          
-          let allItems = [];
-          let loadedFeeds = 0;
-          let failedFeeds = 0;
-  
-          // Process all feeds
+
           feeds.forEach(feed => {
-              // Check if it's a Google News feed
-              if (feed.url.includes('news.google.com')) {
-                  tryGoogleNewsFeed(feed);
-              } else {
-                  // For all other feeds, use RSS2JSON
-                  tryRSS2JSON(feed);
+              const cacheKey = `dmx-rss-cache-${feed.url}`;
+              let cachedFeedData = null;
+              let isCacheValid = false;
+
+              try {
+                  const cachedRaw = localStorage.getItem(cacheKey);
+                  if (cachedRaw) {
+                      cachedFeedData = JSON.parse(cachedRaw);
+                      if (now - cachedFeedData.timestamp < cacheDuration) {
+                          isCacheValid = true;
+                      } else {
+                          console.log(`Cache expired for ${feed.name}`);
+                          // Don't remove expired cache yet, we might display it
+                      }
+                      // Add items to cache list regardless of validity for initial display
+                      allItemsFromCache = allItemsFromCache.concat(cachedFeedData.items.map(item => ({ ...item, feedName: feed.name })));
+                  }
+              } catch (e) {
+                  console.error(`Error reading cache for ${feed.name}:`, e);
+                  localStorage.removeItem(cacheKey); // Remove potentially corrupted cache
+              }
+
+              cacheStatus[feed.url] = { isValid: isCacheValid, data: cachedFeedData };
+
+              // Add to fetch list if cache is missing or invalid
+              if (!cachedFeedData || !isCacheValid) {
+                  feedsToFetch.push(feed);
               }
           });
-  
-          // Helper function to handle Google News feeds specifically
-          function tryGoogleNewsFeed(feed) {
-              console.log(`Fetching Google News feed: ${feed.name}`);
-              
-              // Use a more powerful proxy specifically designed for Google News feeds
-              const googleNewsProxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(feed.url);
-              
-              fetch(googleNewsProxyUrl)
-                  .then(response => {
-                      if (!response.ok) {
-                          throw new Error(`AllOrigins proxy returned status: ${response.status} for ${feed.name}`);
-                      }
-                      return response.text(); // Google News feeds are XML, so we get the raw text
-                  })
-                  .then(xmlText => {
-                      // Parse the XML manually
-                      const parser = new DOMParser();
-                      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-                      
-                      // Extract items from the XML
-                      const items = xmlDoc.querySelectorAll('item');
-                      
-                      if (items.length > 0) {
-                          const parsedItems = Array.from(items).map(item => {
-                              // Extract essential RSS elements
-                              const title = item.querySelector('title')?.textContent || 'No Title';
-                              const link = item.querySelector('link')?.textContent || '#';
-                              const pubDate = item.querySelector('pubDate')?.textContent || new Date().toUTCString();
-                              const description = item.querySelector('description')?.textContent || '';
-                              
-                              // Create item object in the format our display function expects
-                              return {
-                                  title: title,
-                                  link: link,
-                                  pubDate: pubDate,
-                                  description: description,
-                                  source: feed.name,
-                                  thumbnail: '' // Don't add a thumbnail for Google News feeds
-                              };
-                          });
-                          
-                          // Add items to our collection
-                          allItems = [...allItems, ...parsedItems];
-                      } else {
-                          throw new Error(`No items found in ${feed.name} feed`);
-                      }
-                  })
-                  .catch(error => {
-                      console.error(`Error fetching Google News feed ${feed.name}:`, error);
-                      
-                      // As a last resort, try a different proxy
-                      tryLastResortProxy(feed);
-                      
-                      failedFeeds++;
-                  })
-                  .finally(() => {
-                      loadedFeeds++;
-                      checkAllFeedsProcessed();
-                  });
+
+          // --- Phase 2: Initial Display from Cache (if available) ---
+          if (allItemsFromCache.length > 0) {
+              console.log("Displaying potentially stale data from cache first.");
+              rssContent.innerHTML = ''; // Clear content now
+              // Sort cached items by date (newest first)
+              allItemsFromCache.sort((a, b) => {
+                  const dateA = a.pubDate ? new Date(a.pubDate) : 0;
+                  const dateB = b.pubDate ? new Date(b.pubDate) : 0;
+                  if (isNaN(dateA) && isNaN(dateB)) return 0;
+                  if (isNaN(dateA)) return 1;
+                  if (isNaN(dateB)) return -1;
+                  return dateB - dateA;
+              });
+              displayRssItems(allItemsFromCache);
+              initialDisplayDone = true;
+              rssLoading.style.display = 'none'; // Hide main loading
+              // Optionally, show a subtle "refreshing" indicator if feedsToFetch.length > 0
+          } else {
+              // No cache, keep loading indicator until fetch completes
+              rssContent.innerHTML = ''; // Clear content
           }
-          
-          // Last resort proxy for difficult feeds
-          function tryLastResortProxy(feed) {
-              console.log(`Trying last resort proxy for: ${feed.name}`);
-              
-              // Jsonp.io is another proxy service with different capabilities
-              const lastResortUrl = `https://jsonp.io/?url=${encodeURIComponent(feed.url)}`;
-              
-              fetch(lastResortUrl)
-                  .then(response => {
-                      if (!response.ok) {
-                          throw new Error(`Last resort proxy returned status: ${response.status}`);
-                      }
-                      return response.json();
-                  })
-                  .then(data => {
-                      // Try to extract content from the jsonp.io response
-                      if (data && data.contents) {
-                          // Parse the XML from the contents
-                          const parser = new DOMParser();
-                          const xmlDoc = parser.parseFromString(data.contents, "text/xml");
-                          
-                          // Extract items from the XML
-                          const items = xmlDoc.querySelectorAll('item');
-                          
-                          if (items.length > 0) {
-                              const parsedItems = Array.from(items).map(item => {
-                                  // Extract essential RSS elements
-                                  const title = item.querySelector('title')?.textContent || 'No Title';
-                                  const link = item.querySelector('link')?.textContent || '#';
-                                  const pubDate = item.querySelector('pubDate')?.textContent || new Date().toUTCString();
-                                  
-                                  return {
-                                      title: title,
-                                      link: link,
-                                      pubDate: pubDate,
-                                      source: feed.name,
-                                      thumbnail: '' // Don't add a thumbnail for last resort feeds
-                                  };
-                              });
-                              
-                              allItems = [...allItems, ...parsedItems];
-                          }
-                      }
-                  })
-                  .catch(error => {
-                      console.error(`Last resort proxy also failed for ${feed.name}:`, error);
-                      // We've already counted this as a failed feed, so no need to increment
-                  });
+
+          // --- Phase 3: Background Fetching for Invalid/Missing Cache ---
+          if (feedsToFetch.length === 0) {
+              console.log("All feeds have valid cache. No background fetch needed.");
+              rssDataLoaded = true; // Mark as loaded
+              // Ensure loading is hidden if we only had cache
+              rssLoading.style.display = 'none';
+              return; // Nothing more to do
           }
-  
-          // Helper function for regular RSS feeds using RSS2JSON
-          function tryRSS2JSON(feed) {
-              console.log(`Fetching regular feed: ${feed.name} via RSS2JSON`);
-              
-              // Use the RSS2JSON API for regular feeds
-              const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}&api_key=qbqvspwa1xgeozhgdiwu7rch5zvlmxdhgjcjboei`;
-              
-              fetch(apiUrl)
-                  .then(response => {
-                      if (!response.ok) {
-                          throw new Error(`Feed API returned status: ${response.status} for ${feed.name}`);
-                      }
-                      return response.json();
-                  })
-                  .then(data => {
-                      if (data.status === 'ok' && data.items) {
-                          // Add source name to each item
-                          const itemsWithSource = data.items.map(item => ({
-                              ...item,
-                              source: feed.name
-                          }));
-                          
-                          // Add items to our collection
-                          allItems = [...allItems, ...itemsWithSource];
-                      } else {
-                          // Handle API error response
-                          throw new Error(data.message || `Failed to parse feed: ${feed.name}`);
-                      }
-                  })
-                  .catch(error => {
-                      console.error(`Error fetching feed ${feed.name} with RSS2JSON:`, error);
-                      
-                      // If RSS2JSON fails, try the alternative approach
-                      tryAlternativeRSSProxy(feed);
-                      
-                      failedFeeds++;
-                  })
-                  .finally(() => {
-                      loadedFeeds++;
-                      checkAllFeedsProcessed();
-                  });
+
+          console.log(`Starting background fetch for ${feedsToFetch.length} feeds.`);
+          let newlyFetchedItems = {}; // Store successfully fetched items by URL
+          let fetchedCount = 0;
+          let failedCount = 0;
+
+          feedsToFetch.forEach(feed => {
+              console.log(`Fetching live data for ${feed.name} in background.`);
+              // Determine which fetch function to use
+              if (feed.url.includes('news.google.com')) {
+                  tryGoogleNewsFeed(feed, handleFetchSuccess, handleFetchFailure);
+              } else {
+                  tryRSS2JSON(feed, handleFetchSuccess, handleFetchFailure);
+              }
+          });
+
+          // --- Helper Functions for Background Fetch --- 
+
+          function handleFetchSuccess(feed, items) {
+              console.log(`Background fetch succeeded for ${feed.name}`);
+              saveToCache(feed.url, items); // Update cache with fresh data
+              newlyFetchedItems[feed.url] = items.map(item => ({ ...item, feedName: feed.name }));
+              fetchedCount++;
+              checkBackgroundFetchesComplete();
           }
-          
-          // Alternative proxy method as backup for regular feeds
-          function tryAlternativeRSSProxy(feed) {
-              console.log(`Trying alternative proxy for regular feed: ${feed.name}`);
-              
-              // Use allorigins as a backup
-              const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}&callback=?`;
-              
-              fetch(proxyUrl)
-                  .then(response => {
-                      if (!response.ok) {
-                          throw new Error(`Alternative proxy returned status: ${response.status}`);
-                      }
-                      return response.json();
-                  })
-                  .then(data => {
-                      if (data && data.contents) {
-                          try {
-                              // Try to parse as JSON first (some feeds return JSON)
-                              const jsonData = JSON.parse(data.contents);
-                              
-                              if (jsonData.items || jsonData.entries) {
-                                  const items = jsonData.items || jsonData.entries;
-                                  const processedItems = items.map(item => ({
-                                      title: item.title || 'No Title',
-                                      link: item.link || item.url || '#',
-                                      pubDate: item.pubDate || item.published || new Date().toUTCString(),
-                                      description: item.description || item.content || item.summary || '',
-                                      source: feed.name,
-                                      thumbnail: '' // Don't add a thumbnail for alternative proxy feeds
-                                  }));
-                                  
-                                  allItems = [...allItems, ...processedItems];
-                                  return;
-                              }
-                          } catch (e) {
-                              // Not JSON, try to parse as XML
-                              const parser = new DOMParser();
-                              const xmlDoc = parser.parseFromString(data.contents, "text/xml");
-                              
-                              // Try to detect feed type (RSS or Atom)
-                              const isAtom = xmlDoc.querySelector('feed') !== null;
-                              
-                              if (isAtom) {
-                                  // Parse Atom feed
-                                  const entries = xmlDoc.querySelectorAll('entry');
-                                  if (entries.length > 0) {
-                                      const parsedItems = Array.from(entries).map(entry => {
-                                          const title = entry.querySelector('title')?.textContent || 'No Title';
-                                          const link = entry.querySelector('link[rel="alternate"]')?.getAttribute('href') || 
-                                                     entry.querySelector('link')?.getAttribute('href') || '#';
-                                          const pubDate = entry.querySelector('updated')?.textContent || 
-                                                        entry.querySelector('published')?.textContent || 
-                                                        new Date().toUTCString();
-                                          
-                                          return {
-                                              title: title,
-                                              link: link,
-                                              pubDate: pubDate,
-                                              source: feed.name,
-                                              thumbnail: '' // Don't add a thumbnail for Atom feeds
-                                          };
-                                      });
-                                      
-                                      allItems = [...allItems, ...parsedItems];
-                                  }
-                              } else {
-                                  // Parse RSS feed
-                                  const items = xmlDoc.querySelectorAll('item');
-                                  if (items.length > 0) {
-                                      const parsedItems = Array.from(items).map(item => {
-                                          const title = item.querySelector('title')?.textContent || 'No Title';
-                                          const link = item.querySelector('link')?.textContent || '#';
-                                          const pubDate = item.querySelector('pubDate')?.textContent || new Date().toUTCString();
-                                          
-                                          return {
-                                              title: title,
-                                              link: link,
-                                              pubDate: pubDate,
-                                              source: feed.name,
-                                              thumbnail: '' // Don't add a thumbnail for RSS feeds
-                                          };
-                                      });
-                                      
-                                      allItems = [...allItems, ...parsedItems];
-                                  }
-                              }
-                          }
-                      }
-                  })
-                  .catch(error => {
-                      console.error(`Error with alternative proxy for ${feed.name}:`, error);
-                      // Don't increment failedFeeds here as the primary method already counted it
-                  });
+
+          function handleFetchFailure(feed, error) {
+              console.error(`Background fetch failed for ${feed.name}:`, error);
+              failedCount++;
+              // Keep the potentially stale cache for this feed if it exists
+              checkBackgroundFetchesComplete();
           }
-          
-          // Helper function to check if all feeds have been processed
-          function checkAllFeedsProcessed() {
-              if (loadedFeeds === feeds.length) {
-                  rssLoading.style.display = 'none'; // Hide loading indicator
-                  
-                  if (allItems.length > 0) {
-                      // Sort items by date (newest first)
-                      allItems.sort((a, b) => {
-                          // Add error handling for invalid dates
-                          const dateA = new Date(a.pubDate || 0);
-                          const dateB = new Date(b.pubDate || 0);
+
+          function checkBackgroundFetchesComplete() {
+              if (fetchedCount + failedCount === feedsToFetch.length) {
+                  console.log("All background fetches complete.");
+                  rssLoading.style.display = 'none'; // Ensure loading is hidden
+
+                  // --- Phase 4: Final Display Update --- 
+                  let finalAllItems = [];
+
+                  // Combine fresh data and valid cached data
+                  feeds.forEach(feed => {
+                      if (newlyFetchedItems[feed.url]) {
+                          // Use freshly fetched data
+                          finalAllItems = finalAllItems.concat(newlyFetchedItems[feed.url]);
+                      } else if (cacheStatus[feed.url]?.isValid && cacheStatus[feed.url]?.data) {
+                          // Use valid cached data if fetch wasn't needed or failed
+                          finalAllItems = finalAllItems.concat(cacheStatus[feed.url].data.items.map(item => ({ ...item, feedName: feed.name })));
+                      } else if (cacheStatus[feed.url]?.data && !cacheStatus[feed.url]?.isValid && !newlyFetchedItems[feed.url]) {
+                          // Fallback: Use stale cache if fetch failed and it was the only source
+                          finalAllItems = finalAllItems.concat(cacheStatus[feed.url].data.items.map(item => ({ ...item, feedName: feed.name })));
+                      }
+                  });
+
+                  if (finalAllItems.length > 0) {
+                      // Sort final combined list
+                      finalAllItems.sort((a, b) => {
+                          const dateA = a.pubDate ? new Date(a.pubDate) : 0;
+                          const dateB = b.pubDate ? new Date(b.pubDate) : 0;
+                          if (isNaN(dateA) && isNaN(dateB)) return 0;
+                          if (isNaN(dateA)) return 1;
+                          if (isNaN(dateB)) return -1;
                           return dateB - dateA;
                       });
-                      
-                      // Display the combined items
-                      displayRssItems(allItems);
-                      rssDataLoaded = true; // Mark RSS as loaded when successful
-                  } else {
-                      // No items were successfully loaded
+                      // Update the display with the final combined list
+                      displayRssItems(finalAllItems);
+                  } else if (failedCount === feeds.length) {
+                      // All feeds failed (initial cache + background fetch)
+                      rssError.textContent = `Failed to load any feeds. Check URLs or try again later.`;
                       rssError.style.display = 'block';
-                      if (failedFeeds === feeds.length) {
-                          rssError.textContent = 'Failed to load all feeds. Check URLs or network connection.';
-                      } else {
-                          rssError.textContent = 'No articles found in the successfully loaded feeds.';
-                      }
-                      rssDataLoaded = true; // Mark as loaded even if there's an error
+                      rssContent.innerHTML = ''; // Clear any stale cache display
+                  } else if (!initialDisplayDone) {
+                      // No cache initially, and fetches resulted in no items (or all failed)
+                      rssContent.innerHTML = '<div class="empty-message">No articles found in the added feeds.</div>';
                   }
+                  // If initialDisplayDone was true and finalAllItems is empty, we just keep the stale cache display
+
+                  rssDataLoaded = true; // Mark as fully loaded/updated
               }
           }
-      }
-  
-      // Display feed items in the UI
-      function displayRssItems(items) {
-          const rssLoading = document.getElementById('rss-loading');
-          const rssError = document.getElementById('rss-error');
-          const rssContent = document.getElementById('rss-content');
-          
-          try {
-              // Check if we have items to display
-              if (items && items.length > 0) {
-                  // Clear previous content
-                  rssContent.innerHTML = '';
-                  
-                  // Create and append feed article elements
-                  items.forEach(item => {
-                      const articleElement = document.createElement('a');
-                      
-                      // Look for images in various possible locations depending on feed format
-                      let hasThumbnail = false;
-                      let imageUrl = '';
-                      
-                      // Check for thumbnail in various possible locations
-                      if (item.thumbnail && item.thumbnail !== '') {
-                          imageUrl = item.thumbnail;
-                          hasThumbnail = true;
-                      } else if (item.enclosure && item.enclosure.link) {
-                          imageUrl = item.enclosure.link;
-                          hasThumbnail = true;
-                      } else if (item.image) {
-                          imageUrl = item.image;
-                          hasThumbnail = true;
+
+          // --- Modified Fetch Functions to Accept Callbacks --- 
+
+          function saveToCache(feedUrl, items) {
+              const cacheKey = `dmx-rss-cache-${feedUrl}`;
+              const cacheEntry = {
+                  timestamp: Date.now(),
+                  items: items
+              };
+              try {
+                  localStorage.setItem(cacheKey, JSON.stringify(cacheEntry));
+                  console.log(`Cache updated for ${feedUrl}`);
+              } catch (e) {
+                  console.error(`Error saving cache for ${feedUrl}:`, e);
+              }
+          }
+
+          // Use a more reliable proxy helper
+          function fetchWithProxy(url) {
+              // Using allorigins.win as a proxy
+              const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+              return fetch(proxyUrl);
+          }
+
+          // Modify fetch helpers to accept success/failure callbacks
+          function tryGoogleNewsFeed(feed, onSuccess, onFailure) {
+              console.log(`Attempting fetch for Google News feed: ${feed.name} via proxy`);
+              fetchWithProxy(feed.url) // Use the proxy for Google News
+                  .then(response => {
+                      if (!response.ok) {
+                          throw new Error(`Proxy fetch failed with status: ${response.status}`);
                       }
-                      
-                      // Add appropriate class based on thumbnail availability
-                      articleElement.className = hasThumbnail ? 'news-article has-thumbnail' : 'news-article no-thumbnail';
-                      articleElement.href = item.link || item.url || '#';
-                      articleElement.target = '_blank';
-                      articleElement.rel = 'noopener noreferrer';
-                      
-                      // Format date - handle both ISO and other formats
-                      let formattedDate = '';
-                      try {
-                          const publishDate = new Date(item.pubDate || item.published || item.date || Date.now());
-                          formattedDate = publishDate.toLocaleDateString(undefined, {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
+                      return response.text();
+                  })
+                  .then(str => new window.DOMParser().parseFromString(str, "text/xml"))
+                  .then(data => {
+                      const items = data.querySelectorAll("item");
+                      let feedItems = [];
+                      items.forEach(el => {
+                          feedItems.push({
+                              title: el.querySelector("title")?.textContent || '',
+                              link: el.querySelector("link")?.textContent || '',
+                              pubDate: el.querySelector("pubDate")?.textContent || '',
+                              description: el.querySelector("description")?.textContent || ''
                           });
-                      } catch (e) {
-                          formattedDate = 'Unknown date';
-                      }
-                      
-                      // Create article HTML with conditional layout - completely different structures
-                      if (hasThumbnail) {
-                          // Standard layout with thumbnail
-                          articleElement.innerHTML = `
-                              <div class="news-image" style="background-image: url('${imageUrl}')"></div>
-                              <div class="news-content">
-                                  <div class="news-title">${item.title}</div>
-                                  <div class="news-source">${item.source}</div>
-                                  <div class="news-date">${formattedDate}</div>
-                              </div>
-                          `;
+                      });
+                      if (feedItems.length > 0) {
+                          onSuccess(feed, feedItems);
                       } else {
-                          // Text-only layout without image or favicon area
-                          articleElement.innerHTML = `
-                              <div class="news-content full-width">
-                                  <div class="news-title">${item.title}</div>
-                                  <div class="news-source">${item.source}</div>
-                                  <div class="news-date">${formattedDate}</div>
-                              </div>
-                          `;
+                          throw new Error("Proxy fetch for Google News yielded no items.");
                       }
-                      
-                      rssContent.appendChild(articleElement);
+                  })
+                  .catch(error => {
+                      console.error(`Google News fetch failed for ${feed.name}:`, error);
+                      onFailure(feed, error); // Final failure for Google News
                   });
-                  
-                  // Show content, hide loading and error
-                  rssLoading.style.display = 'none';
-                  rssError.style.display = 'none';
-                  rssContent.style.display = 'block';
-              } else {
-                  throw new Error('No articles found');
-              }
-          } catch (error) {
-              console.error('Error displaying feed data:', error);
-              rssLoading.style.display = 'none';
-              rssContent.style.display = 'none';
-              rssError.style.display = 'block';
-              rssError.textContent = 'Error displaying feeds.';
+          }
+
+          function tryRSS2JSON(feed, onSuccess, onFailure) {
+              const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}`;
+              fetch(apiUrl)
+                  .then(response => response.json())
+                  .then(data => {
+                      if (data.status === 'ok') {
+                          const feedItems = data.items || [];
+                          onSuccess(feed, feedItems);
+                      } else {
+                          console.warn(`RSS2JSON failed for ${feed.name} (Status: ${data.status}, Message: ${data.message}), trying proxy.`);
+                          tryProxyFetch(feed, onSuccess, onFailure); // Fallback to general proxy
+                      }
+                  })
+                  .catch(error => {
+                      console.warn(`Error fetching ${feed.name} with RSS2JSON: ${error}, trying proxy.`);
+                      tryProxyFetch(feed, onSuccess, onFailure); // Fallback to general proxy
+                  });
+          }
+
+          // Renamed from tryAlternativeRSSProxy and tryLastResortProxy
+          function tryProxyFetch(feed, onSuccess, onFailure) {
+              console.log(`Attempting fetch for ${feed.name} via proxy`);
+              fetchWithProxy(feed.url) // Use the proxy
+                  .then(response => {
+                      if (!response.ok) {
+                          throw new Error(`Proxy fetch failed with status: ${response.status}`);
+                      }
+                      return response.text();
+                  })
+                  .then(str => new window.DOMParser().parseFromString(str, "text/xml"))
+                  .then(data => {
+                      // Check for common RSS/Atom feed structures
+                      let items = data.querySelectorAll("item"); // RSS
+                      if (items.length === 0) {
+                          items = data.querySelectorAll("entry"); // Atom
+                      }
+
+                      let feedItems = [];
+                      items.forEach(el => {
+                          // Adapt parsing for both RSS <item> and Atom <entry>
+                          const title = el.querySelector("title")?.textContent || '';
+                          // Atom uses <link href="...">, RSS uses <link>...</link>
+                          let link = el.querySelector("link")?.textContent || '';
+                          if (!link && el.querySelector("link[href]")) {
+                              link = el.querySelector("link[href]")?.getAttribute('href') || '';
+                          }
+                          // Atom uses <updated> or <published>, RSS uses <pubDate>
+                          const pubDate = el.querySelector("pubDate")?.textContent || el.querySelector("updated")?.textContent || el.querySelector("published")?.textContent || '';
+                          // Atom uses <summary> or <content>, RSS uses <description>
+                          const description = el.querySelector("description")?.textContent || el.querySelector("summary")?.textContent || el.querySelector("content")?.textContent || '';
+
+                          feedItems.push({ title, link, pubDate, description });
+                      });
+
+                      if (feedItems.length > 0) {
+                          onSuccess(feed, feedItems);
+                      } else {
+                          // Check if the root element suggests it's not XML/RSS/Atom
+                          if (!data.documentElement || (data.documentElement.nodeName !== 'rss' && data.documentElement.nodeName !== 'feed')) {
+                             throw new Error("Proxy fetch did not return valid XML/RSS/Atom.");
+                          } else {
+                             // Valid XML structure, but no items found
+                             console.warn(`Proxy fetch for ${feed.name} yielded no items, but structure seems valid.`);
+                             onSuccess(feed, []); // Report success with empty items
+                          }
+                      }
+                  })
+                  .catch(error => {
+                      console.error(`Proxy fetch failed for ${feed.name}:`, error);
+                      onFailure(feed, error); // Final failure point
+                  });
           }
       }
-      
+
+// Ensure displayRssItems is robust and handles being called multiple times
+function displayRssItems(items) {
+    const rssContent = document.getElementById('rss-content');
+    const rssLoading = document.getElementById('rss-loading');
+    const rssError = document.getElementById('rss-error');
+
+    rssLoading.style.display = 'none'; // Ensure loading is hidden
+    rssError.style.display = 'none';   // Ensure error is hidden initially
+    rssContent.innerHTML = ''; // Clear previous content safely
+
+    if (!items || items.length === 0) {
+        rssContent.innerHTML = '<div class="empty-message">No articles found.</div>';
+        return;
+    }
+
+    // No need for the extra articlesContainer div
+    // const articlesContainer = document.createElement('div');
+    // articlesContainer.className = 'news-articles-container';
+
+    items.forEach(item => {
+        // Main element is an anchor tag
+        const articleElement = document.createElement('a');
+        articleElement.href = item.link || item.url || '#'; // Use item.link or item.url
+        articleElement.target = '_blank'; // Open in new tab
+        articleElement.rel = 'noopener noreferrer';
+
+        // --- Thumbnail Logic (similar to old code) ---
+        let hasThumbnail = false;
+        let imageUrl = '';
+
+        if (item.thumbnail && item.thumbnail !== '') {
+            imageUrl = item.thumbnail;
+            hasThumbnail = true;
+        } else if (item.enclosure && item.enclosure.link && item.enclosure.type && item.enclosure.type.startsWith('image')) {
+            // Check enclosure type for images
+            imageUrl = item.enclosure.link;
+            hasThumbnail = true;
+        } else if (item.image) { // Some feeds might use 'image'
+            imageUrl = item.image;
+            hasThumbnail = true;
+        } else {
+             // Basic check in description/content for an <img> tag as a fallback
+             const description = item.description || item.content || '';
+             const imgMatch = description.match(/<img[^>]+src="([^">]+)"/i);
+             if (imgMatch && imgMatch[1]) {
+                 imageUrl = imgMatch[1];
+                 // Basic validation to avoid data URIs or relative paths if needed
+                 if (imageUrl.startsWith('http')) {
+                    hasThumbnail = true;
+                 }
+             }
+        }
+
+        articleElement.className = hasThumbnail ? 'news-article has-thumbnail' : 'news-article no-thumbnail';
+
+        // --- Content Creation --- 
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'news-content';
+        if (!hasThumbnail) {
+            contentDiv.classList.add('full-width');
+        }
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'news-title';
+        titleDiv.textContent = item.title || 'No title';
+
+        const sourceDiv = document.createElement('div');
+        sourceDiv.className = 'news-source';
+        // Use feedName as the source, as determined during fetch
+        sourceDiv.textContent = item.feedName || 'Unknown Source'; 
+
+        const dateDiv = document.createElement('div');
+        dateDiv.className = 'news-date';
+        if (item.pubDate) {
+            try {
+                const date = new Date(item.pubDate);
+                // Use the more detailed date format from the old code
+                dateDiv.textContent = date.toLocaleDateString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (e) {
+                dateDiv.textContent = 'Invalid date';
+            }
+        } else {
+            dateDiv.textContent = 'No date';
+        }
+
+        // Append title, source, date to contentDiv
+        contentDiv.appendChild(titleDiv);
+        contentDiv.appendChild(sourceDiv);
+        contentDiv.appendChild(dateDiv);
+
+        // --- Assemble Article --- 
+        if (hasThumbnail) {
+            const imageDiv = document.createElement('div');
+            imageDiv.className = 'news-image';
+            // Set background image safely
+            imageDiv.style.backgroundImage = `url('${imageUrl}')`; 
+            articleElement.appendChild(imageDiv);
+        }
+        
+        articleElement.appendChild(contentDiv);
+
+        // Append the complete articleElement directly to rssContent
+        rssContent.appendChild(articleElement);
+    });
+
+    // rssContent.appendChild(articlesContainer); // No longer needed
+}
+
       // ===== TAB2 - SETTINGS FUNCTIONALITY =====
       // Toggle settings form for Tab2
       tab2SettingsBtn.addEventListener('click', () => {
@@ -1949,8 +2085,8 @@ if ('serviceWorker' in navigator) {
       // Load RSS feeds list in settings
       function loadRssFeeds() {
           const feeds = JSON.parse(localStorage.getItem('dmx-rss-feeds')) || [];
-          rssContainer.innerHTML = '';
-          
+          rssContainer.innerHTML = ''; // Clear existing content safely
+
           if (feeds.length === 0) {
               const emptyMessage = document.createElement('div');
               emptyMessage.className = 'empty-message';
@@ -1958,29 +2094,53 @@ if ('serviceWorker' in navigator) {
               rssContainer.appendChild(emptyMessage);
               return;
           }
-          
+
           feeds.forEach((feed, index) => {
+              // Create elements safely
               const feedItem = document.createElement('div');
               feedItem.className = 'rss-feed-item';
-              feedItem.innerHTML = `
-                  <div class="feed-info">
-                      <div class="feed-name">${feed.name}</div>
-                      <div class="feed-url">${feed.url}</div>
-                  </div>
-                  <div class="feed-actions">
-                      <span class="feed-action edit" data-index="${index}">
-                          <i class="fas fa-edit"></i>
-                      </span>
-                      <span class="feed-action delete" data-index="${index}">
-                          <i class="fas fa-trash"></i>
-                      </span>
-                  </div>
-              `;
-              
+
+              const feedInfo = document.createElement('div');
+              feedInfo.className = 'feed-info';
+
+              const feedNameDiv = document.createElement('div');
+              feedNameDiv.className = 'feed-name';
+              feedNameDiv.textContent = feed.name; // Use textContent for safety
+
+              const feedUrlDiv = document.createElement('div');
+              feedUrlDiv.className = 'feed-url';
+              feedUrlDiv.textContent = feed.url; // Use textContent for safety
+
+              feedInfo.appendChild(feedNameDiv);
+              feedInfo.appendChild(feedUrlDiv);
+
+              const feedActions = document.createElement('div');
+              feedActions.className = 'feed-actions';
+
+              const editSpan = document.createElement('span');
+              editSpan.className = 'feed-action edit';
+              editSpan.dataset.index = index; // Use dataset for data attributes
+              const editIcon = document.createElement('i');
+              editIcon.className = 'fas fa-edit';
+              editSpan.appendChild(editIcon);
+
+              const deleteSpan = document.createElement('span');
+              deleteSpan.className = 'feed-action delete';
+              deleteSpan.dataset.index = index; // Use dataset for data attributes
+              const deleteIcon = document.createElement('i');
+              deleteIcon.className = 'fas fa-trash';
+              deleteSpan.appendChild(deleteIcon);
+
+              feedActions.appendChild(editSpan);
+              feedActions.appendChild(deleteSpan);
+
+              feedItem.appendChild(feedInfo);
+              feedItem.appendChild(feedActions);
+
               // Add event listeners for edit and delete actions
-              feedItem.querySelector('.edit').addEventListener('click', () => editRssFeed(index));
-              feedItem.querySelector('.delete').addEventListener('click', () => deleteRssFeed(index));
-              
+              editSpan.addEventListener('click', () => editRssFeed(index));
+              deleteSpan.addEventListener('click', () => deleteRssFeed(index));
+
               rssContainer.appendChild(feedItem);
           });
       }
@@ -2120,6 +2280,17 @@ if ('serviceWorker' in navigator) {
                   // Load sharp borders state
                   const savedSharpState = localStorage.getItem('dmx-sharp-borders') === 'true';
                   if (sharpBordersToggle) sharpBordersToggle.checked = savedSharpState;
+
+                  // Load disable shadow state
+                  const savedShadowState = localStorage.getItem('dmx-disable-shadow') === 'true';
+                  if (disableShadowToggle) disableShadowToggle.checked = savedShadowState;
+
+                  // Load window background color and opacity
+                  const savedWindowColor = localStorage.getItem('dmx-window-bg-color') || '#16161e'; // Default color
+                  const savedWindowOpacity = localStorage.getItem('dmx-window-bg-opacity') || '10'; // Default opacity
+                  if (windowBgColorInput) windowBgColorInput.value = savedWindowColor;
+                  if (windowBgOpacitySlider) windowBgOpacitySlider.value = savedWindowOpacity;
+                  if (windowBgOpacityValue) windowBgOpacityValue.textContent = `${savedWindowOpacity}%`;
               }
           } else {
               console.error('Background form element (#background-form) not found!');
@@ -2170,32 +2341,56 @@ if ('serviceWorker' in navigator) {
               const color = customBgColorInput.value;
               const currentBg = localStorage.getItem('dmx-background') || '';
               
-              if (currentBg.startsWith('#') || (!currentBg.startsWith('http') && !currentBg.startsWith('data:') && !currentBg.includes('/'))) {
-                  // If current background is already a color OR seems like a preset (no URL/data), apply as solid color
-                  applyBackground(color);
-                  if (overlayOpacitySection) overlayOpacitySection.style.display = 'none'; // Hide slider
-              } else {
-                  // Otherwise, apply as overlay
-                  const opacity = customColorOpacitySlider.value;
-                  applyColorOverlay(color, opacity);
-                  if (overlayOpacitySection) overlayOpacitySection.style.display = 'block'; // Ensure slider is visible
+              // Always treat this button as applying overlay color/opacity now
+              const opacity = customColorOpacitySlider.value;
+              applyColorOverlay(color, opacity);
+              if (overlayOpacitySection) overlayOpacitySection.style.display = 'block'; // Ensure slider is visible
+  
+              // If the current background IS a solid color, applying an overlay effectively changes the background
+              // So, update the main background setting as well
+              if (currentBg.startsWith('#')) {
+                   // We are effectively setting a new solid background via the overlay controls
+                   // Apply as solid background, which also clears overlay settings internally
+                   applyBackground(color);
               }
-              // Optionally clear the URL input when applying a color/overlay explicitly
-              // if (customBgUrl) customBgUrl.value = ''; 
           });
       }
-
-      // Add event listener for the opacity slider
+  
+      // Add event listener for the overlay opacity slider
       if (customColorOpacitySlider) {
           customColorOpacitySlider.addEventListener('input', function() {
               const opacity = this.value;
               if (customColorOpacityValue) customColorOpacityValue.textContent = `${opacity}%`;
               const color = customBgColorInput.value; // Get current color from input
-              // Only apply if the background is not a solid color
-              const currentBg = localStorage.getItem('dmx-background') || '';
-              if (!currentBg.startsWith('#')) {
-                  applyColorOverlay(color, opacity); // Apply change immediately
-              }
+              applyColorOverlay(color, opacity); // Apply change immediately
+          });
+      }
+  
+      // Add event listeners for window background controls
+      if (windowBgColorInput) {
+          windowBgColorInput.addEventListener('input', function() {
+              // Color input change doesn't apply immediately, waits for button click
+          });
+      }
+      if (windowBgOpacitySlider) {
+          windowBgOpacitySlider.addEventListener('input', function() {
+              const opacity = this.value;
+              if (windowBgOpacityValue) windowBgOpacityValue.textContent = `${opacity}%`;
+              // Apply opacity change immediately, keeping the current color
+              const currentColor = localStorage.getItem('dmx-window-bg-color') || '#16161e'; // Use saved color
+              applyWindowBackground(currentColor, opacity); // Apply change immediately
+              console.log("Applied window opacity:", opacity + "%");
+          });
+      }
+  
+      // Add event listener for the new Apply Window Background button
+      if (applyWindowBgBtn) {
+          applyWindowBgBtn.addEventListener('click', function() {
+              const color = windowBgColorInput.value;
+              // Apply only the color change, keeping the current opacity
+              const currentOpacity = windowBgOpacitySlider.value; // Get current opacity from slider
+              applyWindowBackground(color, currentOpacity);
+              console.log("Applied window background color:", color);
           });
       }
   
@@ -2206,30 +2401,10 @@ if ('serviceWorker' in navigator) {
           applyBlur(value);
       });
   
-      // Reset blur to default
-      resetBlurBtn.addEventListener('click', function() {
-          blurSlider.value = defaultBlur;
-          blurValue.textContent = `${defaultBlur}px`;
-          applyBlur(defaultBlur);
-      });
-  
       // Function to apply blur and save to localStorage
       function applyBlur(value) {
-          // Get the ::before pseudo-element and apply the blur
-          const style = document.createElement('style');
-          style.textContent = `.main-window::before { backdrop-filter: blur(${value}px); }`;
-          
-          // Remove any existing style with ID 'custom-blur' if it exists
-          const existingStyle = document.getElementById('custom-blur');
-          if (existingStyle) {
-              existingStyle.remove();
-          }
-          
-          // Add ID to the new style element and append it to the document head
-          style.id = 'custom-blur';
-          document.head.appendChild(style);
-          
-          // Save to localStorage
+          // Use CSS variable for easier application
+          document.documentElement.style.setProperty('--window-blur', `${value}px`);
           localStorage.setItem('dmx-blur', value);
       }
   
@@ -2276,20 +2451,20 @@ if ('serviceWorker' in navigator) {
           // Save the main background setting to localStorage
           localStorage.setItem('dmx-background', value);
       }
-
+  
       // Function to apply color overlay
-      function applyColorOverlay(color, opacity) {
+      function applyColorOverlay(color, opacity, save = true) { // Added save flag
           if (backgroundOverlay) {
-              // Check if the current background is a solid color
               const currentBg = localStorage.getItem('dmx-background') || '';
               if (!currentBg.startsWith('#')) { // Only apply overlay if background is not solid color
                   console.warn('Applying overlay. Ensure #background-overlay has CSS for position, size, and z-index (e.g., position:fixed, top:0, left:0, width:100%, height:100%, z-index:-1).'); // Added warning
                   backgroundOverlay.style.backgroundColor = color;
                   backgroundOverlay.style.opacity = opacity / 100; // Convert percentage to decimal
                   backgroundOverlay.style.display = 'block'; // Ensure it's visible
-                  // Save overlay settings
-                  localStorage.setItem('dmx-overlay-color', color);
-                  localStorage.setItem('dmx-overlay-opacity', opacity);
+                  if (save) { // Only save if flag is true
+                      localStorage.setItem('dmx-overlay-color', color);
+                      localStorage.setItem('dmx-overlay-opacity', opacity);
+                  }
               } else {
                   // Ensure overlay is hidden if background is solid color
                   backgroundOverlay.style.backgroundColor = 'transparent';
@@ -2303,14 +2478,14 @@ if ('serviceWorker' in navigator) {
               console.error('#background-overlay element not found in HTML.'); // Added error for missing element
           }
       }
-
+  
       // Function to load saved color overlay setting
       function loadColorOverlay() {
           const savedColor = localStorage.getItem('dmx-overlay-color');
           const savedOpacity = localStorage.getItem('dmx-overlay-opacity');
           // Check if the current background is a solid color before applying overlay
           const currentBg = localStorage.getItem('dmx-background') || '';
-
+  
           if (savedColor && savedOpacity && !currentBg.startsWith('#')) {
               applyColorOverlay(savedColor, savedOpacity);
               // Update controls if they exist and form is potentially open
@@ -2366,10 +2541,66 @@ if ('serviceWorker' in navigator) {
           applySharpBordersSetting(savedState);
       }
       
+      // Function to apply disable shadow setting
+      function applyDisableShadowSetting(enabled) {
+          if (enabled) {
+              document.body.classList.add('no-shadow');
+          } else {
+              document.body.classList.remove('no-shadow');
+          }
+          localStorage.setItem('dmx-disable-shadow', enabled);
+      }
+  
+      // Function to load saved disable shadow setting
+      function loadDisableShadowSetting() {
+          const savedState = localStorage.getItem('dmx-disable-shadow') === 'true';
+          if (disableShadowToggle) {
+              disableShadowToggle.checked = savedState;
+          }
+          applyDisableShadowSetting(savedState);
+      }
+  
+      // Function to apply window background color/opacity
+      function applyWindowBackground(color, opacity) {
+          // Convert hex color and opacity percentage to RGBA
+          const r = parseInt(color.slice(1, 3), 16);
+          const g = parseInt(color.slice(3, 5), 16);
+          const b = parseInt(color.slice(5, 7), 16);
+          const alpha = opacity / 100;
+          const rgbaColor = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  
+          // Use CSS variable for the ::before element's background
+          document.documentElement.style.setProperty('--window-bg-before', rgbaColor);
+  
+          // Save settings - always save both when either changes
+          localStorage.setItem('dmx-window-bg-color', color);
+          localStorage.setItem('dmx-window-bg-opacity', opacity);
+      }
+  
+      // Function to load saved window background settings
+      function loadWindowBackgroundSettings() {
+          const savedColor = localStorage.getItem('dmx-window-bg-color') || '#16161e';
+          const savedOpacity = localStorage.getItem('dmx-window-bg-opacity') || '10';
+  
+          applyWindowBackground(savedColor, savedOpacity);
+  
+          // Update controls if they exist
+          if (windowBgColorInput) windowBgColorInput.value = savedColor;
+          if (windowBgOpacitySlider) windowBgOpacitySlider.value = savedOpacity;
+          if (windowBgOpacityValue) windowBgOpacityValue.textContent = `${savedOpacity}%`;
+      }
+  
       // Add event listener for sharp borders toggle
       if (sharpBordersToggle) {
           sharpBordersToggle.addEventListener('change', function() {
               applySharpBordersSetting(this.checked);
+          });
+      }
+  
+      // Add event listener for disable shadow toggle
+      if (disableShadowToggle) {
+          disableShadowToggle.addEventListener('change', function() {
+              applyDisableShadowSetting(this.checked);
           });
       }
   
@@ -2400,14 +2631,77 @@ if ('serviceWorker' in navigator) {
           }
       }
       
+      // Add event listener for the reset background settings button
+      if (resetBackgroundSettingsBtn) {
+          resetBackgroundSettingsBtn.addEventListener('click', function() {
+              // Define default values
+              const defaultBg = 'img/Wallpaper-1.jpg';
+              const defaultWindowColor = '#16161e';
+              const defaultWindowOpacity = '10';
+              const defaultBlurValue = 10;
+              const defaultSharpBorders = false;
+              const defaultDisableShadow = false;
 
-      
+              // 1. Reset Background Image/Color
+              applyBackground(defaultBg);
+              // Update UI for background selector
+              bgOptions.forEach(option => {
+                  if (option.dataset.bg === defaultBg) {
+                      option.classList.add('active');
+                  } else {
+                      option.classList.remove('active');
+                  }
+              });
+              if (customBgUrl) customBgUrl.value = '';
 
-      
-      // Load background, blur, and sharp borders settings on page load
-      loadBackground();
-      loadBlur();
-      loadSharpBordersSetting(); // Added
+              // 2. Reset Background Overlay
+              applyColorOverlay('transparent', 0, false); // Apply visually without saving
+              localStorage.removeItem('dmx-overlay-color');
+              localStorage.removeItem('dmx-overlay-opacity');
+              // Update UI for overlay controls
+              if (customBgColorInput) customBgColorInput.value = '#1a1b26'; // Reset color picker
+              if (customColorOpacitySlider) customColorOpacitySlider.value = 0; // Reset slider
+              if (customColorOpacityValue) customColorOpacityValue.textContent = `0%`; // Reset value display
+              if (overlayOpacitySection) overlayOpacitySection.style.display = 'block'; // Ensure it's visible if bg is image
+
+              // 3. Reset Window Background (::before)
+              applyWindowBackground(defaultWindowColor, defaultWindowOpacity);
+              // Update UI for window background controls
+              if (windowBgColorInput) windowBgColorInput.value = defaultWindowColor;
+              if (windowBgOpacitySlider) windowBgOpacitySlider.value = defaultWindowOpacity;
+              if (windowBgOpacityValue) windowBgOpacityValue.textContent = `${defaultWindowOpacity}%`;
+
+              // 4. Reset Window Blur
+              applyBlur(defaultBlurValue);
+              // Update UI for blur slider
+              if (blurSlider) blurSlider.value = defaultBlurValue;
+              if (blurValue) blurValue.textContent = `${defaultBlurValue}px`;
+
+              // 5. Reset Sharp Borders
+              applySharpBordersSetting(defaultSharpBorders);
+              // Update UI for sharp borders toggle
+              if (sharpBordersToggle) sharpBordersToggle.checked = defaultSharpBorders;
+
+              // 6. Reset Disable Shadow
+              applyDisableShadowSetting(defaultDisableShadow);
+              // Update UI for disable shadow toggle
+              if (disableShadowToggle) disableShadowToggle.checked = defaultDisableShadow;
+
+              console.log("Window styles reset to defaults.");
+          });
+      }
+
+      // Create a function to apply all background/style settings
+      function applyAllBackgroundSettings() {
+          loadBackground(); // Applies main background and calls loadColorOverlay
+          loadBlur();
+          loadSharpBordersSetting();
+          loadDisableShadowSetting(); // Added
+          loadWindowBackgroundSettings(); // Added
+      }
+
+      // Load background, blur, and other style settings on page load
+      applyAllBackgroundSettings(); // Use the combined function
       
       // Toggle Tab1 settings form
       if (tab1SettingsBtn) {
@@ -2632,5 +2926,6 @@ if ('serviceWorker' in navigator) {
           }
       }
   });
+
 
 

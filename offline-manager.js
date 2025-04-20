@@ -163,7 +163,8 @@ class OfflineManager {
     const initialStatus = navigator.onLine;
     
     // If browser thinks we're online, double-check with an actual network request via service worker
-    if (initialStatus && navigator.serviceWorker.controller) {
+    // Check if serviceWorker and its controller exist before using them
+    if (initialStatus && navigator.serviceWorker && navigator.serviceWorker.controller) {
       // Create a message channel to get a response from the service worker
       const channel = new MessageChannel();
       
@@ -189,7 +190,7 @@ class OfflineManager {
         this.updateOnlineStatus(isOnline);
       });
     } else {
-      // If the browser thinks we're offline, trust that
+      // If the browser thinks we're offline, or service worker isn't available, trust navigator.onLine
       this.updateOnlineStatus(initialStatus);
     }
   }
