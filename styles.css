@@ -161,11 +161,13 @@ body.no-shadow .status-bar {
 }
 
 .tab-icon:hover {
-    color: var(--blue);
+    /* color: var(--blue); */
+    color: var(--purple);
 }
 
 .tab-icon.active {
-    color: var(--purple);
+    /* color: var(--purple); */
+    color: var(--blue);
     border-bottom: none;
     position: relative;
 }
@@ -175,6 +177,7 @@ body.no-shadow .status-bar {
     position: absolute;
     height: 2px;
     background-color: var(--purple);
+    background-color: var(--blue);
     bottom: 0;
     left: 50%;
     transform: translateX(-50%);
