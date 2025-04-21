@@ -25,15 +25,16 @@
   --storm-alpha-80: rgba(26, 27, 38, 0.8);
   --storm-alpha-85: rgba(26, 27, 38, 0.85);
   --storm-alpha-90: rgba(26, 27, 38, 0.9);
-  --storm-darker-alpha-90: rgba(15, 17, 37, 0.9); /* Custom */
+  --storm-darker-alpha-90: rgba(15, 17, 37, 0.9); 
 
   --surface-alpha-40: rgba(41, 46, 66, 0.4);
-  --surface-alpha-50: rgba(65, 72, 104, 0.5); /* Custom - close enough */
+  --surface-alpha-50: rgba(65, 72, 104, 0.5); 
   --surface-alpha-60: rgba(41, 46, 66, 0.6);
   --surface-alpha-70: rgba(41, 46, 66, 0.7);
   --surface-alpha-80: rgba(41, 46, 66, 0.8);
   --surface-alpha-85: rgba(41, 46, 66, 0.85);
   --surface-alpha-90: rgba(41, 46, 66, 0.9);
+  --surface-alpha-95: rgba(41, 46, 66, 0.95);
 
   --purple-alpha-10: rgba(187, 154, 247, 0.1);
   --purple-alpha-20: rgba(187, 154, 247, 0.2);
@@ -58,13 +59,6 @@
     padding: 0;
     box-sizing: border-box;
 }
-
-/* ===== SHARP BORDERS SETTING ===== */
-/* body.sharp-borders *,
-body.sharp-borders *:before,
-body.sharp-borders *:after {
-    border-radius: unset !important;
-} */
 
 body.sharp-borders .sharp,
 body.sharp-borders .sharp:before,
@@ -2567,12 +2561,8 @@ input:checked + .toggle-slider:before {
     border-radius: 50%;
     background-color: var(--blue);
 }
+
 @media (max-width: 1700px) {
-    .container {
-        scale: 0.95;
-    }
-}
-@media (max-width: 1600px) {
     .container {
         scale: 0.90;
     }

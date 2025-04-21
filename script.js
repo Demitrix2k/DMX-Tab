@@ -1532,12 +1532,24 @@ if ('serviceWorker' in navigator) {
           }
       }
       
-      // RSS Data Function with Stale-While-Revalidate Caching
-      function loadRssData() {
+      // RSS Data Function with Stale-While-Revalidate Caching and Periodic Refresh
+      let isRssLoading = false; // Flag to prevent concurrent full loads
+      let rssRefreshIntervalId = null; // To store the interval ID
+      const RSS_REFRESH_INTERVAL = 300000; // 5 minutes in milliseconds
+
+      function loadRssData(isPeriodicRefresh = false) {
+          // If called by setInterval and already loading, skip this run
+          if (isPeriodicRefresh && isRssLoading) {
+              console.log('[RSS] Periodic refresh skipped: Already loading.');
+              return;
+          }
+          isRssLoading = true; // Set loading flag
+
           const rssLoading = document.getElementById('rss-loading');
           const rssError = document.getElementById('rss-error');
           const rssContent = document.getElementById('rss-content');
-          const cacheDuration = 3600000; // 1 hour in milliseconds
+          // Change cache duration to 5 minutes
+          const cacheDuration = RSS_REFRESH_INTERVAL; // Use the constant
           const feeds = JSON.parse(localStorage.getItem('dmx-rss-feeds')) || [];
           const now = Date.now();
 
@@ -1547,7 +1559,10 @@ if ('serviceWorker' in navigator) {
           let cacheStatus = {}; // Store cache validity for each feed URL
 
           // --- Phase 1: Load from Cache & Identify Feeds to Fetch ---
-          rssLoading.style.display = 'block'; // Show loading initially
+          // Only show loading indicator if not a periodic refresh OR if there's no content displayed yet
+          if (!isPeriodicRefresh || rssContent.children.length === 0) {
+             rssLoading.style.display = 'block';
+          }
           rssError.style.display = 'none';
           // Don't clear rssContent here, wait until we decide if we show cache
 
@@ -1590,25 +1605,28 @@ if ('serviceWorker' in navigator) {
           });
 
           // --- Phase 2: Initial Display from Cache (if available) ---
-          if (allItemsFromCache.length > 0) {
-              console.log("Displaying potentially stale data from cache first.");
-              rssContent.innerHTML = ''; // Clear content now
-              // Sort cached items by date (newest first)
-              allItemsFromCache.sort((a, b) => {
-                  const dateA = a.pubDate ? new Date(a.pubDate) : 0;
-                  const dateB = b.pubDate ? new Date(b.pubDate) : 0;
-                  if (isNaN(dateA) && isNaN(dateB)) return 0;
-                  if (isNaN(dateA)) return 1;
-                  if (isNaN(dateB)) return -1;
-                  return dateB - dateA;
-              });
-              displayRssItems(allItemsFromCache);
-              initialDisplayDone = true;
-              rssLoading.style.display = 'none'; // Hide main loading
-              // Optionally, show a subtle "refreshing" indicator if feedsToFetch.length > 0
-          } else {
-              // No cache, keep loading indicator until fetch completes
-              rssContent.innerHTML = ''; // Clear content
+          // Display cached items only if not a periodic refresh OR if nothing is displayed yet
+          if (!isPeriodicRefresh || rssContent.children.length === 0) {
+              if (allItemsFromCache.length > 0) {
+                  console.log("Displaying potentially stale data from cache first.");
+                  rssContent.innerHTML = ''; // Clear content now
+                  // Sort cached items by date (newest first)
+                  allItemsFromCache.sort((a, b) => {
+                      const dateA = a.pubDate ? new Date(a.pubDate) : 0;
+                      const dateB = b.pubDate ? new Date(b.pubDate) : 0;
+                      if (isNaN(dateA) && isNaN(dateB)) return 0;
+                      if (isNaN(dateA)) return 1;
+                      if (isNaN(dateB)) return -1;
+                      return dateB - dateA;
+                  });
+                  displayRssItems(allItemsFromCache);
+                  initialDisplayDone = true;
+                  rssLoading.style.display = 'none'; // Hide main loading
+                  // Optionally, show a subtle "refreshing" indicator if feedsToFetch.length > 0
+              } else {
+                  // No cache, keep loading indicator until fetch completes
+                  rssContent.innerHTML = ''; // Clear content
+              }
           }
 
           // --- Phase 3: Background Fetching for Invalid/Missing Cache ---
@@ -2925,7 +2943,40 @@ function displayRssItems(items) {
               // Large screens - use default gap settings defined earlier
           }
       }
-  });
+
+      // ===== INITIALIZATION =====
+      
+      // ... existing load functions ...
+      loadShortcuts();
+      loadNotes();
+      loadTodoItems();
+      loadTabVisibilitySettings(); // Load tab visibility first
+      loadTab2Settings(); // Load settings for Tab2 (needed for weather/rss)
+      applyAllBackgroundSettings(); // Load background/style settings
+      
+      // Initial load for Tab2 data (weather and RSS)
+      // These functions now handle their own loading indicators and errors
+      loadWeatherData(); 
+      loadRssData(); // Initial RSS load
+
+      // Start periodic RSS refresh AFTER initial load
+      if (rssRefreshIntervalId) {
+          clearInterval(rssRefreshIntervalId); // Clear previous interval if any
+      }
+      rssRefreshIntervalId = setInterval(() => {
+          console.log('[RSS] Triggering periodic refresh...');
+          loadRssData(true); // Pass flag indicating it's a periodic refresh
+      }, RSS_REFRESH_INTERVAL);
+
+
+      // Initialize edit mode AFTER shortcuts are loaded
+      setTimeout(initEditMode, 100);
+      
+      handleWindowResize(); // Initialize grid layout
+      
+      // ... rest of initialization code ...
+
+  }); // End DOMContentLoaded
 
 
 
